@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component, signal, ViewChild, WritableSignal} from "@angular/core";
 import {Edge, Node, VflowComponent} from "ngx-vflow";
-import {Agent, MCP, NodeData, Tool} from "../model/definitions";
+import {Agent, MCP, Tool} from "@agentspyglass/core";
+import {NodeData} from "../model/definitions";
 import {InfoNode} from "./node/info/info.node";
 import {AgentNode} from "./node/agent/agent.node";
 import {MessageNode} from "./node/message/message.node";

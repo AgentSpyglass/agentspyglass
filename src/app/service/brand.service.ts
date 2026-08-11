@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Brand } from "../model/definitions";
+import { Brand } from "@agentspyglass/core";
 
 @Injectable({ providedIn: "root" })
 export class BrandService {

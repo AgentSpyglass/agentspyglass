@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {MCP, NodeData, Tool} from "../../../model/definitions";
+import {MCP, Tool} from "@agentspyglass/core";
+import {NodeData} from "../../../model/definitions";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 

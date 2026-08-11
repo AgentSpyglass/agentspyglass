@@ -4,7 +4,7 @@ import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {BinocularsIcon, Expand, Telescope01Icon, ZoomIn, ZoomOut} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
-import {MCP, Todo, Tool} from "./model/definitions";
+import {MCP, Todo, Tool} from "@agentspyglass/core";
 import {TodoComponent} from "./component/todo/todo.component";
 
 @Component({

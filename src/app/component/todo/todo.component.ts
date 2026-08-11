@@ -1,6 +1,7 @@
 import {Component, Input, input, signal} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {Agent, MCP, NodeData, Todo} from "../../model/definitions";
+import {Agent, MCP, Todo} from "@agentspyglass/core";
+import {NodeData} from "../../model/definitions";
 import {LowerCasePipe, TitleCasePipe} from "@angular/common";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {

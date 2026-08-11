@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {Agent, NodeData} from "../../../model/definitions";
+import {Agent} from "@agentspyglass/core";
+import {NodeData} from "../../../model/definitions";
 import {LowerCasePipe} from "@angular/common";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";

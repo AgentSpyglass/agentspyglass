@@ -16,21 +16,7 @@
         "skill": "allow"
       }
     },
-    "ui-coder": {
-      "mode": "subagent",
-      "model": "opencode-go/mimo-v2.5",
-      "permission": {
-        "edit": "allow",
-        "bash": "allow",
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "task": "deny",
-        "todowrite": "allow",
-        "webfetch": "deny"
-      }
-    },
-    "rust-coder": {
+    "engineer": {
       "mode": "subagent",
       "model": "opencode-go/mimo-v2.5",
       "permission": {

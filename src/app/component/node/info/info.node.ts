@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
 import {NodeData} from "../../../model/definitions";
 
@@ -6,15 +6,11 @@ import {NodeData} from "../../../model/definitions";
     selector: 'info-node',
     standalone: true,
     templateUrl: './info.node.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         HandleComponent
     ]
 })
 export class InfoNode extends CustomNodeComponent<NodeData> {
-
-    getData() {
-        if (this.data()) return this.data() as NodeData
-
-        return {} as NodeData
-    }
+    resolvedData = computed((): NodeData => this.data() ?? ({} as NodeData));
 }

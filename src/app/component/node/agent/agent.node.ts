@@ -1,10 +1,10 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, inject} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {Agent} from "@agentspyglass/core";
 import {NodeData} from "../../../model/definitions";
 import {LowerCasePipe} from "@angular/common";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
+import {EntityStoreService} from "../../../service/entity-store.service";
 
 @Component({
     selector: 'agent-node',
@@ -19,16 +19,11 @@ import {NameCasePipe} from "../../../pipe/namecase.pipe";
     ]
 })
 export class AgentNode extends CustomNodeComponent<NodeData> {
+    private entityStore = inject(EntityStoreService);
 
-    getData() {
-        return (this.data() ?? {}) as NodeData
-    }
-
-    getFrom() {
-        return (this.getData().from ?? {}) as Agent
-    }
-
-    decorateAgent() {
-
-    }
+    agent = computed(() => {
+        const data = this.data();
+        if (!data?.entityId) return undefined;
+        return this.entityStore.getAgent(data.entityId);
+    });
 }

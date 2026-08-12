@@ -1,8 +1,8 @@
 <section class="border-blue-300 border bg-blue-300/20 p-4 py-4 rounded-lg flex flex-col gap-2">
-	<h1 class="font-black">{{ getData().from }}</h1>
+	<h1 class="font-black">{{ resolvedData().entityId ?? 'Info' }}</h1>
 
 	<div class="text-xs font-light p-4 rounded-lg bg-blue-300/20">
-		{{ getData().content }}
+		{{ resolvedData().content }}
 	</div>
 
 	<handle type="source" position="right" />

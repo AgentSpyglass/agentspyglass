@@ -1,13 +1,12 @@
-import {ChangeDetectionStrategy, Component, signal, ViewChild, WritableSignal} from "@angular/core";
-import {Edge, Node, VflowComponent} from "ngx-vflow";
-import {Agent, MCP, Tool} from "@agentspyglass/core";
-import {NodeData} from "../model/definitions";
+import {ChangeDetectionStrategy, Component, inject, signal, ViewChild, WritableSignal} from "@angular/core";
+import {ComponentNode, Edge, Node, VflowComponent} from "ngx-vflow";
+import {Agent, MCP} from "@agentspyglass/core";
+import {NodeData, NodeType} from "../model/definitions";
 import {InfoNode} from "./node/info/info.node";
 import {AgentNode} from "./node/agent/agent.node";
 import {MessageNode} from "./node/message/message.node";
 import {McpNode} from "./node/mcp/mcp.node";
-// @ts-ignore
-import {ComponentNode} from "ngx-vflow/lib/vflow/interfaces/node.interface";
+import {EntityStoreService} from "../service/entity-store.service";
 
 @Component({
     selector: "flow",
@@ -33,8 +32,14 @@ export class FlowComponent {
     nodes: WritableSignal<Node[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
-    agentCount = 0;
-    mcpCount = 0;
+    private entityStore = inject(EntityStoreService);
+
+    private readonly LAYOUT = {
+        agent: { baseX: 600, baseY: 100, spacingY: 250 },
+        mcp: { baseX: 150, baseY: 150, spacingY: 200 },
+        message: { offsetX: 350, offsetY: 0, fallbackX: 950, fallbackY: 100 },
+        info: { x: 400, y: 400 }
+    };
 
     fitView(): void {
         this.vflow.fitView({padding: 0.3, duration: 200});
@@ -52,64 +57,58 @@ export class FlowComponent {
         return this.vflow.viewport();
     }
 
-    public addAgent(from: Agent) {
-        this.addNode('agent', from.sessionId, {from} as NodeData);
-        this.agentCount++
+    public addAgent(agent: Agent) {
+        this.addNode('agent', agent.sessionId, {
+            type: 'agent',
+            entityId: agent.sessionId,
+        });
     }
 
     public addMessage(sessionId: string, content: string) {
         const nodeId = `message-${sessionId}`;
-        this.addNode('message', nodeId, {from: this.findNode(sessionId)?.data().from, to: this.findPrimary()?.data().from, content} as NodeData);
+        const primary = this.entityStore.findPrimaryAgent();
+        this.addNode('message', nodeId, {
+            type: 'message',
+            entityId: nodeId,
+            content,
+            senderId: sessionId,
+            receiverId: primary?.sessionId,
+        }, sessionId);
         this.addEdge(nodeId, sessionId);
-        this.addEdge(nodeId, this.findPrimary()?.id);
-    }
-
-    public addMcp(from: string, to: MCP) {
-        this.addNode('mcp', to.name, {to} as NodeData);
-        this.mcpCount++
-
-        this.addEdge(from, to.name);
-    }
-
-    private addNode(type: NodeType, nodeId: string, data: NodeData) {
-        const existing = this.nodes().find(n => n.id === nodeId);
-        if (existing) {
-            const component = existing as ComponentNode;
-            if (component.data() != data) {
-                console.log('Updating data:', data);
-                component.data?.update(() => data);
-            }
-            return;
+        if (primary) {
+            this.addEdge(nodeId, primary.sessionId);
         }
+    }
+
+    public addMcp(from: string, mcp: MCP) {
+        this.addNode('mcp', mcp.name, {
+            type: 'mcp',
+            entityId: mcp.name,
+        });
+        this.addEdge(from, mcp.name);
+    }
+
+    private addNode(type: NodeType, nodeId: string, data: NodeData, senderId?: string) {
+        if (this.nodes().find(n => n.id === nodeId)) return;
 
         const node: ComponentNode = {
             id: nodeId,
             type: this.getType(type),
-            point: this.calculatePosition(type),
+            point: signal(this.calculatePosition(type, senderId)),
             data: signal(data)
         };
         this.nodes.set([...this.nodes(), node]);
     }
 
     private addEdge(source: string, target: string) {
-        console.log('Adding edge:', source, target);
-        this.edges.set([...this.edges(), {
-            id: `${source} -> ${target}`,
-            source,
-            target
-        }]);
-    }
-
-    private findNode(id: string) {
-        return this.nodes()
-            .map(n => n as ComponentNode)
-            .find(n => n.id === id);
-    }
-
-    private findPrimary() {
-        return this.nodes()
-            .map(n => n as ComponentNode)
-            .find(n => n.data().from.role == 'primary');
+        const exists = this.edges().find(e => e.source === source && e.target === target);
+        if (!exists) {
+            this.edges.set([...this.edges(), {
+                id: `${source} -> ${target}`,
+                source,
+                target
+            }]);
+        }
     }
 
     getType(type: NodeType) {
@@ -125,28 +124,33 @@ export class FlowComponent {
         return InfoNode;
     }
 
-    private calculatePosition(type: NodeType) {
-        let x = 0;
-        let y = 0;
-        if (type == 'agent') {
-            y = 200 * this.agentCount;
-        }
+    private calculatePosition(type: NodeType, senderId?: string) {
+        const nodes = this.nodes();
 
-        if (type == 'message') {
-            x = 350;
-            y = -100;
+        switch (type) {
+            case 'agent': {
+                const count = nodes.filter(n => n.type === AgentNode).length;
+                return {
+                    x: this.LAYOUT.agent.baseX,
+                    y: this.LAYOUT.agent.baseY + (count * this.LAYOUT.agent.spacingY)
+                };
+            }
+            case 'mcp': {
+                const count = nodes.filter(n => n.type === McpNode).length;
+                return {
+                    x: this.LAYOUT.mcp.baseX,
+                    y: this.LAYOUT.mcp.baseY + (count * this.LAYOUT.mcp.spacingY)
+                };
+            }
+            case 'message': {
+                const sender = senderId ? nodes.find(n => n.id === senderId) : null;
+                const senderPos = sender ? sender.point() : null;
+                const baseX = senderPos ? senderPos.x + this.LAYOUT.message.offsetX : this.LAYOUT.message.fallbackX;
+                const baseY = senderPos ? senderPos.y + this.LAYOUT.message.offsetY : this.LAYOUT.message.fallbackY;
+                return { x: baseX, y: baseY };
+            }
+            default:
+                return this.LAYOUT.info;
         }
-
-        if (type == 'mcp') {
-            x = -450;
-            y = 150 * this.mcpCount;
-        }
-
-        return signal({
-            x: 600 + x,
-            y: 280 + y
-        });
     }
 }
-
-type NodeType = "agent" | "mcp" | "message" | "info";

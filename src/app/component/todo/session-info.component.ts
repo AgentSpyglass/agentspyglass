@@ -11,19 +11,20 @@ import {
     Coins01Icon,
     CpuIcon
 } from "@hugeicons/core-free-icons";
+import {StatusData} from "../../model/definitions";
 
 @Component({
-    selector: 'todo',
+    selector: 'session-info',
     standalone: true,
-    templateUrl: './todo.component.html',
+    templateUrl: './session-info.component.html',
     imports: [
         HugeiconsIconComponent
     ]
 })
-export class TodoComponent {
+export class SessionInfoComponent {
     open = signal(true);
     list = input.required<Todo[]>();
-    usage = input<{ tokens: number; cost: number; contextUsed: number } | null>(null);
+    usage = input.required<StatusData>();
 
     toggle() {
         this.open.update((v) => !v);

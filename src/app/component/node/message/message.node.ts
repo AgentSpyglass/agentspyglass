@@ -4,6 +4,7 @@ import {NodeData} from "../../../model/definitions";
 import {LowerCasePipe} from "@angular/common";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
+import {TextContainerComponent} from "../../text-container.component";
 
 @Component({
     selector: 'message-node',
@@ -13,7 +14,8 @@ import {EntityStoreService} from "../../../service/entity-store.service";
     imports: [
         LowerCasePipe,
         HandleComponent,
-        NameCasePipe
+        NameCasePipe,
+        TextContainerComponent
     ]
 })
 export class MessageNode extends CustomNodeComponent<NodeData> {
@@ -22,6 +24,18 @@ export class MessageNode extends CustomNodeComponent<NodeData> {
     sender = computed(() => {
         const data = this.data();
         if (!data?.senderId) return undefined;
+        if (data.senderId == 'user') {
+            return {
+                sessionId: 'user',
+                name: 'User',
+                model: 'Human',
+                brand: {
+                    name: 'User',
+                    logo: 'assets/user.png',
+                }
+            }
+        }
+
         return this.entityStore.getAgent(data.senderId);
     });
 

@@ -4,18 +4,19 @@ import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {BinocularsIcon, Expand, Setting06Icon, Telescope01Icon, ZoomIn, ZoomOut} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
-import {MCP, Todo, Tool} from "@agentspyglass/core";
-import {TodoComponent} from "./component/todo/todo.component";
+import {Todo, Tool} from "@agentspyglass/core";
+import {SessionInfoComponent} from "./component/todo/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {SettingsComponent} from "./component/settings/settings.component";
+import {StatusData} from "./model/definitions";
 
 @Component({
   selector: "app-root",
     imports: [
         HugeiconsIconComponent,
         FlowComponent,
-        TodoComponent,
+        SessionInfoComponent,
         SettingsComponent
     ],
   templateUrl: "./app.component.html",
@@ -29,7 +30,11 @@ export class AppComponent implements AfterViewInit {
     private destroyRef = inject(DestroyRef);
 
     todoList = signal<Todo[]>([]);
-    usage = signal<{ tokens: number; cost: number; contextUsed: number } | null>(null);
+    usage = signal<StatusData>({
+        cost: 0,
+        tokens: 0,
+        contextUsed: 0
+    });
 
     readonly atMaxZoom = signal(false);
     readonly atMinZoom = signal(false);
@@ -91,12 +96,18 @@ export class AppComponent implements AfterViewInit {
             this.flow.addMessage(messageEvent.sessionId, messageEvent.content);
         });
 
-        this.bridge.usageEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(usageEvent => {
-            this.usage.set({
-                tokens: usageEvent.tokens,
-                cost: usageEvent.cost,
-                contextUsed: usageEvent.contextUsed,
-            });
+        this.bridge.statusEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(statusEvent => {
+            if (statusEvent.status == 'step-finish') {
+                this.usage.set({
+                    cost: this.usage().cost + (statusEvent.cost ?? 0),
+                    tokens: statusEvent.tokens ?? 0,
+                    contextUsed: 0
+                });
+            }
+        });
+
+        this.bridge.todoEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(todoEvent => {
+            this.todoList.set(todoEvent.todos);
         });
     }
 
@@ -124,7 +135,6 @@ export class AppComponent implements AfterViewInit {
         this.settingsOpen.update(v => !v);
     }
 
-    protected readonly BinocularsIcon = BinocularsIcon;
     protected readonly ZoomIn = ZoomIn;
     protected readonly ZoomOut = ZoomOut;
     protected readonly Expand = Expand;

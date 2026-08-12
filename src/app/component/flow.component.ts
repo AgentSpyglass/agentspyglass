@@ -74,7 +74,7 @@ export class FlowComponent {
             type: 'message',
             entityId: nodeId,
             content,
-            senderId: sessionId,
+            senderId: sessionId == primary?.sessionId ? 'user' : sessionId,
             receiverId: primary?.sessionId,
         }, sessionId);
         this.addEdge(nodeId, sessionId);

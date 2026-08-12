@@ -7,3 +7,9 @@ export type NodeData = {
     senderId?: string;
     receiverId?: string;
 }
+
+export type StatusData = {
+    tokens: number;
+    cost: number;
+    contextUsed: number
+}

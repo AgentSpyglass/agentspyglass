@@ -1,4 +1,4 @@
-<section class="border-slate-400 bg-slate-400/20 border p-4 py-4 rounded-lg flex flex-col gap-4">
+<section class="max-w-96 max-h-48 border-slate-400 bg-slate-400/20 border p-4 py-4 rounded-lg flex flex-col gap-4">
 	@if (sender()) {
 		<div class="font-black inline-flex items-center h-full gap-2">
 			<img [src]="sender()!.brand.logo" alt="AI logo" class="bg-white border-2 border-slate-400 size-8 p-1 rounded-full">
@@ -23,9 +23,7 @@
 		</div>
 	}
 
-	<div class="text-xs font-light p-4 rounded-lg bg-slate-400/20">
-		{{ content() }}
-	</div>
+	<text-container class="text-xs font-light p-4 rounded-lg bg-slate-400/20" [text]="content()" />
 
 	@if (receiver()) {
 		<div class="font-black inline-flex items-center text-right justify-end h-full gap-2">

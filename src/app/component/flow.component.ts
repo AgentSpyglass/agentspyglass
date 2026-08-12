@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, inject, signal, ViewChild, WritableSignal} from "@angular/core";
+import {ChangeDetectionStrategy, Component, computed, inject, signal, viewChild, WritableSignal} from "@angular/core";
 import {ComponentNode, Edge, Node, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
@@ -28,11 +28,14 @@ import {EntityStoreService} from "../service/entity-store.service";
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FlowComponent {
-    @ViewChild(VflowComponent) vflow!: VflowComponent;
+    vflow = viewChild.required(VflowComponent);
     nodes: WritableSignal<Node[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
     private entityStore = inject(EntityStoreService);
+
+    /** Reactive viewport state — safe to read before vflow initializes. */
+    readonly currentViewport = computed(() => this.vflow().viewport() ?? {zoom: 1, x: 0, y: 0});
 
     private readonly LAYOUT = {
         agent: { baseX: 600, baseY: 100, spacingY: 250 },
@@ -42,19 +45,19 @@ export class FlowComponent {
     };
 
     fitView(): void {
-        this.vflow.fitView({padding: 0.3, duration: 200});
+        this.vflow().fitView({padding: 0.3, duration: 200});
     }
 
     zoomIn(): void {
-        this.vflow.zoomTo(Math.min(this.vflow.viewport().zoom * 1.2, 1.5));
+        this.vflow().zoomTo(Math.min(this.vflow().viewport().zoom * 1.2, 1.5));
     }
 
     zoomOut(): void {
-        this.vflow.zoomTo(Math.max(this.vflow.viewport().zoom / 1.2, 0.1));
+        this.vflow().zoomTo(Math.max(this.vflow().viewport().zoom / 1.2, 0.1));
     }
 
     viewport() {
-        return this.vflow.viewport();
+        return this.vflow().viewport();
     }
 
     public addAgent(agent: Agent) {
@@ -71,7 +74,7 @@ export class FlowComponent {
             type: 'message',
             entityId: nodeId,
             content,
-            senderId: sessionId,
+            senderId: sessionId == primary?.sessionId ? 'user' : sessionId,
             receiverId: primary?.sessionId,
         }, sessionId);
         this.addEdge(nodeId, sessionId);

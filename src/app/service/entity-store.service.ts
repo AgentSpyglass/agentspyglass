@@ -7,7 +7,6 @@ export class EntityStoreService {
     private readonly mcps = signal<Map<string, MCP>>(new Map());
 
     readonly agentList = computed(() => Array.from(this.agents().values()));
-    readonly mcpList = computed(() => Array.from(this.mcps().values()));
 
     getAgent(sessionId: string): Agent | undefined {
         return this.agents().get(sessionId);

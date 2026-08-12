@@ -222,7 +222,7 @@ src/app/component/node/agent/agent.node.ts
 src/app/component/node/mcp/mcp.node.ts
 src/app/component/node/message/message.node.ts
 src/app/component/node/info/info.node.ts
-src/app/component/todo/todo.component.ts
+src/app/component/todo/session-info.component.ts
 src/app/model/definitions.ts
 ```
 

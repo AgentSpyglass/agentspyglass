@@ -1,0 +1,34 @@
+@if (open()) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity"
+		 (click)="close()">
+		<div class="bg-bg border border-accent rounded-lg shadow-xl w-full max-w-md mx-3 overflow-hidden"
+			 (click)="$event.stopPropagation()">
+			<div class="flex items-center justify-between p-3 border-b border-accent/30">
+				<h2 class="font-black text-accent inline-flex items-center gap-2">
+					<hugeicons-icon
+							[icon]="Setting06Icon"
+							[size]="20"
+							color="currentColor"
+							[strokeWidth]="1.5"
+					/>
+					Settings
+				</h2>
+				<button
+						class="grid h-8 w-8 place-items-center rounded-md text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
+						(click)="close()"
+						aria-label="Close settings"
+				>
+					<hugeicons-icon
+							[icon]="Cancel01Icon"
+							[size]="18"
+							color="currentColor"
+							[strokeWidth]="1.5"
+					/>
+				</button>
+			</div>
+			<div class="p-4 text-sm text-accent/70">
+				<p class="text-center py-8">Settings coming soon.</p>
+			</div>
+		</div>
+	</div>
+}

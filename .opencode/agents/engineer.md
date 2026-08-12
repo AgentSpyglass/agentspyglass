@@ -98,7 +98,7 @@ Responsible for:
 * `src/app/component/node/mcp/mcp.node.ts` — MCP node
 * `src/app/component/node/message/message.node.ts` — message node
 * `src/app/component/node/info/info.node.ts` — info node
-* `src/app/component/todo/todo.component.ts` — todo list
+* `src/app/component/todo/session-info.component.ts` — todo list
 * `src/app/model/definitions.ts` — local UI-only definitions
 
 ## Dependencies

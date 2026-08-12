@@ -1,7 +1,9 @@
-import { Agent, Tool, MCP } from '@agentspyglass/core';
+export type NodeType = 'agent' | 'mcp' | 'message' | 'info';
 
 export type NodeData = {
-    from?: Agent | Tool | MCP | string | null;
-    to?: Agent | Tool | MCP | null;
+    type: NodeType;
+    entityId?: string;
     content?: string;
+    senderId?: string;
+    receiverId?: string;
 }

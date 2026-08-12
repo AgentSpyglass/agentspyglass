@@ -1,11 +1,17 @@
 <section class="w-96 border-zinc-500 border bg-zinc-500/10 p-4 py-4 rounded-lg flex flex-col gap-2">
 	<div class="font-black inline-flex items-center h-full gap-2">
-		<img [src]="getTo().brand.logo" alt="AI logo" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
+		@if (mcp()) {
+			<img [src]="mcp()!.brand.logo" alt="AI logo" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
 
-		<div>{{ getTo().brand.name | nameCase }}</div>
+			<div>{{ mcp()!.brand.name | nameCase }}</div>
+		} @else {
+			<img src="" alt="Unknown MCP" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
+
+			<div>Loading...</div>
+		}
 	</div>
 
-	@for (tool of getTo().tools.reverse(); track tool.name) {
+	@for (tool of mcp()?.tools ?? []; track tool.name) {
 		<text-container class="text-xs font-light p-4 rounded-lg bg-zinc-500/10" [text]="generateToolMessage(tool)" />
 	}
 </section>

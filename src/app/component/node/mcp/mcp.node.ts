@@ -1,14 +1,16 @@
-import { Component } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, inject} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {MCP, Tool} from "@agentspyglass/core";
+import {Tool} from "@agentspyglass/core";
 import {NodeData} from "../../../model/definitions";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
+import {EntityStoreService} from "../../../service/entity-store.service";
 
 @Component({
     selector: 'mcp-node',
     standalone: true,
     templateUrl: './mcp.node.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         HandleComponent,
         TextContainerComponent,
@@ -16,14 +18,13 @@ import {NameCasePipe} from "../../../pipe/namecase.pipe";
     ]
 })
 export class McpNode extends CustomNodeComponent<NodeData> {
+    private entityStore = inject(EntityStoreService);
 
-    getData() {
-        return (this.data() ?? {}) as NodeData
-    }
-
-    getTo() {
-        return (this.getData().to ?? {}) as MCP
-    }
+    mcp = computed(() => {
+        const data = this.data();
+        if (!data?.entityId) return undefined;
+        return this.entityStore.getMcp(data.entityId);
+    });
 
     generateToolMessage(tool: Tool) {
         return `<span class="font-medium ${this.getColor(tool)}">${tool.name}</span> <span class="text-xs font-light ${this.getColor(tool)}">${JSON.stringify(tool.input)}</span>`

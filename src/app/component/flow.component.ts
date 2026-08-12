@@ -1,13 +1,13 @@
-import {ChangeDetectionStrategy, Component, signal, ViewChild, WritableSignal} from "@angular/core";
-import {Edge, Node, VflowComponent} from "ngx-vflow";
-import {Agent, MCP, Tool} from "@agentspyglass/core";
-import {NodeData} from "../model/definitions";
+import {ChangeDetectionStrategy, Component, inject, signal, ViewChild, WritableSignal} from "@angular/core";
+import {ComponentNode, Edge, Node, VflowComponent} from "ngx-vflow";
+import {Agent, MCP} from "@agentspyglass/core";
+import {NodeData, NodeType} from "../model/definitions";
 import {InfoNode} from "./node/info/info.node";
 import {AgentNode} from "./node/agent/agent.node";
 import {MessageNode} from "./node/message/message.node";
 import {McpNode} from "./node/mcp/mcp.node";
-// @ts-ignore
-import {ComponentNode} from "ngx-vflow/lib/vflow/interfaces/node.interface";
+import {EntityStoreService} from "../service/entity-store.service";
+import {isComponentNode} from "ngx-vflow";
 
 @Component({
     selector: "flow",
@@ -33,8 +33,7 @@ export class FlowComponent {
     nodes: WritableSignal<Node[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
-    agentCount = 0;
-    mcpCount = 0;
+    private entityStore = inject(EntityStoreService);
 
     fitView(): void {
         this.vflow.fitView({padding: 0.3, duration: 200});
@@ -52,32 +51,44 @@ export class FlowComponent {
         return this.vflow.viewport();
     }
 
-    public addAgent(from: Agent) {
-        this.addNode('agent', from.sessionId, {from} as NodeData);
-        this.agentCount++
+    public addAgent(agent: Agent) {
+        this.entityStore.upsertAgent(agent);
+        this.addNode('agent', agent.sessionId, {
+            type: 'agent',
+            entityId: agent.sessionId,
+        });
     }
 
     public addMessage(sessionId: string, content: string) {
         const nodeId = `message-${sessionId}`;
-        this.addNode('message', nodeId, {from: this.findNode(sessionId)?.data().from, to: this.findPrimary()?.data().from, content} as NodeData);
+        const primary = this.entityStore.findPrimaryAgent();
+        this.addNode('message', nodeId, {
+            type: 'message',
+            entityId: nodeId,
+            content,
+            senderId: sessionId,
+            receiverId: primary?.sessionId,
+        });
         this.addEdge(nodeId, sessionId);
-        this.addEdge(nodeId, this.findPrimary()?.id);
+        if (primary) {
+            this.addEdge(nodeId, primary.sessionId);
+        }
     }
 
-    public addMcp(from: string, to: MCP) {
-        this.addNode('mcp', to.name, {to} as NodeData);
-        this.mcpCount++
-
-        this.addEdge(from, to.name);
+    public addMcp(from: string, mcp: MCP) {
+        this.entityStore.upsertMcp(mcp);
+        this.addNode('mcp', mcp.name, {
+            type: 'mcp',
+            entityId: mcp.name,
+        });
+        this.addEdge(from, mcp.name);
     }
 
     private addNode(type: NodeType, nodeId: string, data: NodeData) {
         const existing = this.nodes().find(n => n.id === nodeId);
-        if (existing) {
-            const component = existing as ComponentNode;
-            if (component.data() != data) {
-                console.log('Updating data:', data);
-                component.data?.update(() => data);
+        if (existing && isComponentNode(existing) && existing.data) {
+            if (existing.data() != data) {
+                existing.data.update(() => data);
             }
             return;
         }
@@ -92,24 +103,14 @@ export class FlowComponent {
     }
 
     private addEdge(source: string, target: string) {
-        console.log('Adding edge:', source, target);
-        this.edges.set([...this.edges(), {
-            id: `${source} -> ${target}`,
-            source,
-            target
-        }]);
-    }
-
-    private findNode(id: string) {
-        return this.nodes()
-            .map(n => n as ComponentNode)
-            .find(n => n.id === id);
-    }
-
-    private findPrimary() {
-        return this.nodes()
-            .map(n => n as ComponentNode)
-            .find(n => n.data().from.role == 'primary');
+        const exists = this.edges().find(e => e.source === source && e.target === target);
+        if (!exists) {
+            this.edges.set([...this.edges(), {
+                id: `${source} -> ${target}`,
+                source,
+                target
+            }]);
+        }
     }
 
     getType(type: NodeType) {
@@ -128,18 +129,23 @@ export class FlowComponent {
     private calculatePosition(type: NodeType) {
         let x = 0;
         let y = 0;
+
+        const agentCount = this.nodes().filter(n => n.type === AgentNode).length;
+        const mcpCount = this.nodes().filter(n => n.type === McpNode).length;
+        const messageCount = this.nodes().filter(n => n.type === MessageNode).length;
+
         if (type == 'agent') {
-            y = 200 * this.agentCount;
+            y = 200 * agentCount;
         }
 
         if (type == 'message') {
             x = 350;
-            y = -100;
+            y = -100 + 200 * messageCount;
         }
 
         if (type == 'mcp') {
             x = -450;
-            y = 150 * this.mcpCount;
+            y = 150 * mcpCount;
         }
 
         return signal({
@@ -148,5 +154,3 @@ export class FlowComponent {
         });
     }
 }
-
-type NodeType = "agent" | "mcp" | "message" | "info";

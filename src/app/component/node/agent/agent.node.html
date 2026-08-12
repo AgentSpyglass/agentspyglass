@@ -1,19 +1,32 @@
 <section class="max-w-96 border-accent border bg-accent/20 p-4 py-4 rounded-lg flex flex-col gap-4"
-         [class.border-secondary]="getFrom().role === 'subagent'"
-         [class.bg-secondary/20]="getFrom().role === 'subagent'">
-	<div class="font-black inline-flex items-center h-full gap-2">
-		<img [src]="getFrom().brand.logo" alt="AI logo" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
+         [class.border-secondary]="agent()?.role === 'subagent'"
+         [class.bg-secondary/20]="agent()?.role === 'subagent'">
+	@if (agent()) {
+		<div class="font-black inline-flex items-center h-full gap-2">
+			<img [src]="agent()!.brand.logo" alt="AI logo" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
 
-		<div>
-			<div>{{ getFrom().name | nameCase }}</div>
-			<div class="text-xs font-light text-text/50">
-				{{ getFrom().brand.model | lowercase }}
+			<div>
+				<div>{{ agent()!.name | nameCase }}</div>
+				<div class="text-xs font-light text-text/50">
+					{{ agent()!.brand.model | lowercase }}
+				</div>
 			</div>
 		</div>
-	</div>
 
-	@if (getFrom().prompt) {
-		<text-container class="text-xs font-light p-4 rounded-lg bg-accent/20" [text]="getFrom().prompt" />
+		@if (agent()?.prompt) {
+			<text-container class="text-xs font-light p-4 rounded-lg bg-accent/20" [text]="agent()!.prompt" />
+		}
+	} @else {
+		<div class="font-black inline-flex items-center h-full gap-2">
+			<img src="" alt="Unknown agent" class="bg-white border-2 border-accent size-8 p-1 rounded-full">
+
+			<div>
+				<div>Loading...</div>
+				<div class="text-xs font-light text-text/50">
+					—
+				</div>
+			</div>
+		</div>
 	}
 </section>
 

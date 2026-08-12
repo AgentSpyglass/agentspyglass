@@ -185,14 +185,14 @@ export class BrandService {
         }
 
         const providerName = providerStr || this.providerFromModelPrefix(modelStr) || modelStr;
-        return { logo: src, model: modelStr || 'Not Found', name: providerName };
+        return { logo: src, name: providerName };
     }
 
     /** Resolve a Brand directly from an MCP server name (e.g. "context7", "sequential-thinking"). */
     resolveMcpBrand(name: string | null | undefined): Brand {
         const raw = (name || 'opencode').trim();
         const src = this.matchLogo(raw, this.MCP_FAVICONS, this.MCP_ALIASES) ?? this.FALLBACK_LOGO;
-        return { logo: src, model: raw || 'Not Found', name: raw };
+        return { logo: src, name: raw };
     }
 
     /**

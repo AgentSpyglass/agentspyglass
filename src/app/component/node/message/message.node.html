@@ -6,7 +6,7 @@
 			<div>
 				<div class="text-xs">{{ sender()!.name | nameCase }}</div>
 				<div class="text-xs font-light text-text/50">
-					{{ sender()!.brand.model | lowercase }}
+					{{ sender()!.model | lowercase }}
 				</div>
 			</div>
 		</div>
@@ -32,7 +32,7 @@
 			<div>
 				<div class="text-xs">{{ receiver()!.name | nameCase }}</div>
 				<div class="text-xs font-light text-text/50">
-					{{ receiver()!.brand.model | lowercase }}
+					{{ receiver()!.model | lowercase }}
 				</div>
 			</div>
 			<img [src]="receiver()!.brand.logo" alt="AI logo" class="bg-white border-2 border-slate-400 size-8 p-1 rounded-full">

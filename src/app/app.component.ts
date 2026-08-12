@@ -35,7 +35,7 @@ export class AppComponent  implements AfterViewInit {
         this.bridge.connect();
 
         this.bridge.agentEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(agentEvent => {
-            this.flow.addAgent({
+            const agent = {
                 role: agentEvent.role,
                 name: agentEvent.name,
                 prompt: agentEvent.prompt,
@@ -45,7 +45,9 @@ export class AppComponent  implements AfterViewInit {
                     agentEvent.model,
                     agentEvent.provider
                 ),
-            });
+            };
+            this.entityStore.upsertAgent(agent);
+            this.flow.addAgent(agent);
         });
 
         this.bridge.toolEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(toolEvent => {

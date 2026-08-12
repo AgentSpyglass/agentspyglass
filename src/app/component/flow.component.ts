@@ -7,7 +7,6 @@ import {AgentNode} from "./node/agent/agent.node";
 import {MessageNode} from "./node/message/message.node";
 import {McpNode} from "./node/mcp/mcp.node";
 import {EntityStoreService} from "../service/entity-store.service";
-import {isComponentNode} from "ngx-vflow";
 
 @Component({
     selector: "flow",
@@ -35,6 +34,13 @@ export class FlowComponent {
 
     private entityStore = inject(EntityStoreService);
 
+    private readonly LAYOUT = {
+        agent: { baseX: 600, baseY: 100, spacingY: 250 },
+        mcp: { baseX: 150, baseY: 150, spacingY: 200 },
+        message: { offsetX: 350, offsetY: 0, fallbackX: 950, fallbackY: 100 },
+        info: { x: 400, y: 400 }
+    };
+
     fitView(): void {
         this.vflow.fitView({padding: 0.3, duration: 200});
     }
@@ -52,7 +58,6 @@ export class FlowComponent {
     }
 
     public addAgent(agent: Agent) {
-        this.entityStore.upsertAgent(agent);
         this.addNode('agent', agent.sessionId, {
             type: 'agent',
             entityId: agent.sessionId,
@@ -68,7 +73,7 @@ export class FlowComponent {
             content,
             senderId: sessionId,
             receiverId: primary?.sessionId,
-        });
+        }, sessionId);
         this.addEdge(nodeId, sessionId);
         if (primary) {
             this.addEdge(nodeId, primary.sessionId);
@@ -76,7 +81,6 @@ export class FlowComponent {
     }
 
     public addMcp(from: string, mcp: MCP) {
-        this.entityStore.upsertMcp(mcp);
         this.addNode('mcp', mcp.name, {
             type: 'mcp',
             entityId: mcp.name,
@@ -84,19 +88,13 @@ export class FlowComponent {
         this.addEdge(from, mcp.name);
     }
 
-    private addNode(type: NodeType, nodeId: string, data: NodeData) {
-        const existing = this.nodes().find(n => n.id === nodeId);
-        if (existing && isComponentNode(existing) && existing.data) {
-            if (existing.data() != data) {
-                existing.data.update(() => data);
-            }
-            return;
-        }
+    private addNode(type: NodeType, nodeId: string, data: NodeData, senderId?: string) {
+        if (this.nodes().find(n => n.id === nodeId)) return;
 
         const node: ComponentNode = {
             id: nodeId,
             type: this.getType(type),
-            point: this.calculatePosition(type),
+            point: signal(this.calculatePosition(type, senderId)),
             data: signal(data)
         };
         this.nodes.set([...this.nodes(), node]);
@@ -126,31 +124,33 @@ export class FlowComponent {
         return InfoNode;
     }
 
-    private calculatePosition(type: NodeType) {
-        let x = 0;
-        let y = 0;
+    private calculatePosition(type: NodeType, senderId?: string) {
+        const nodes = this.nodes();
 
-        const agentCount = this.nodes().filter(n => n.type === AgentNode).length;
-        const mcpCount = this.nodes().filter(n => n.type === McpNode).length;
-        const messageCount = this.nodes().filter(n => n.type === MessageNode).length;
-
-        if (type == 'agent') {
-            y = 200 * agentCount;
+        switch (type) {
+            case 'agent': {
+                const count = nodes.filter(n => n.type === AgentNode).length;
+                return {
+                    x: this.LAYOUT.agent.baseX,
+                    y: this.LAYOUT.agent.baseY + (count * this.LAYOUT.agent.spacingY)
+                };
+            }
+            case 'mcp': {
+                const count = nodes.filter(n => n.type === McpNode).length;
+                return {
+                    x: this.LAYOUT.mcp.baseX,
+                    y: this.LAYOUT.mcp.baseY + (count * this.LAYOUT.mcp.spacingY)
+                };
+            }
+            case 'message': {
+                const sender = senderId ? nodes.find(n => n.id === senderId) : null;
+                const senderPos = sender ? sender.point() : null;
+                const baseX = senderPos ? senderPos.x + this.LAYOUT.message.offsetX : this.LAYOUT.message.fallbackX;
+                const baseY = senderPos ? senderPos.y + this.LAYOUT.message.offsetY : this.LAYOUT.message.fallbackY;
+                return { x: baseX, y: baseY };
+            }
+            default:
+                return this.LAYOUT.info;
         }
-
-        if (type == 'message') {
-            x = 350;
-            y = -100 + 200 * messageCount;
-        }
-
-        if (type == 'mcp') {
-            x = -450;
-            y = 150 * mcpCount;
-        }
-
-        return signal({
-            x: 600 + x,
-            y: 280 + y
-        });
     }
 }

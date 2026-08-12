@@ -1,0 +1,62 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "orchestrator": {
+      "mode": "primary",
+      "model": "opencode-go/qwen3.7-plus",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "read": "deny",
+        "glob": "deny",
+        "grep": "deny",
+        "task": "allow",
+        "todowrite": "allow",
+        "question": "allow",
+        "skill": "allow"
+      }
+    },
+    "ui-coder": {
+      "mode": "subagent",
+      "model": "opencode-go/mimo-v2.5",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "task": "deny",
+        "todowrite": "allow",
+        "webfetch": "deny"
+      }
+    },
+    "rust-coder": {
+      "mode": "subagent",
+      "model": "opencode-go/mimo-v2.5",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "task": "deny",
+        "todowrite": "allow",
+        "webfetch": "deny"
+      }
+    },
+    "reviewer": {
+      "mode": "subagent",
+      "model": "opencode-go/hy3",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "task": "deny",
+        "todowrite": "deny",
+        "webfetch": "deny"
+      }
+    }
+  }
+}

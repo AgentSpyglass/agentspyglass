@@ -1,26 +1,24 @@
-import {AfterViewInit, Component, effect, inject, Injector, signal, ViewChild, DestroyRef} from "@angular/core";
+import {AfterViewInit, Component, DestroyRef, effect, inject, Injector, signal, ViewChild} from "@angular/core";
 import {BridgeService} from "./service/bridge.service";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
-import {BinocularsIcon, Expand, Setting06Icon, Telescope01Icon, ZoomIn, ZoomOut} from "@hugeicons/core-free-icons";
+import {ArrowExpandIcon, SearchAddIcon, SearchMinusIcon, Telescope01Icon} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
 import {Todo, Tool} from "@agentspyglass/core";
-import {SessionInfoComponent} from "./component/todo/session-info.component";
+import {SessionInfoComponent} from "./component/session-info/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
-import {SettingsComponent} from "./component/settings/settings.component";
 import {StatusData} from "./model/definitions";
 
 @Component({
-  selector: "app-root",
+    selector: "app-root",
     imports: [
         HugeiconsIconComponent,
         FlowComponent,
-        SessionInfoComponent,
-        SettingsComponent
+        SessionInfoComponent
     ],
-  templateUrl: "./app.component.html",
-  styleUrl: "./app.component.css",
+    templateUrl: "./app.component.html",
+    styleUrl: "./app.component.css",
 })
 export class AppComponent implements AfterViewInit {
     @ViewChild(FlowComponent) flow!: FlowComponent;
@@ -32,14 +30,11 @@ export class AppComponent implements AfterViewInit {
     todoList = signal<Todo[]>([]);
     usage = signal<StatusData>({
         cost: 0,
-        tokens: 0,
         contextUsed: 0
     });
 
     readonly atMaxZoom = signal(false);
     readonly atMinZoom = signal(false);
-
-    settingsOpen = signal(false);
 
     constructor(private injector: Injector) {
         this.bridge.connect();
@@ -55,6 +50,9 @@ export class AppComponent implements AfterViewInit {
                     agentEvent.model,
                     agentEvent.provider
                 ),
+                cost: agentEvent.cost,
+                tokens: agentEvent.tokens,
+                targetSessionId: agentEvent.targetSessionId,
             };
             this.entityStore.upsertAgent(agent);
             this.flow.addAgent(agent);
@@ -100,8 +98,8 @@ export class AppComponent implements AfterViewInit {
             if (statusEvent.status == 'step-finish') {
                 this.usage.set({
                     cost: this.usage().cost + (statusEvent.cost ?? 0),
-                    tokens: statusEvent.tokens ?? 0,
-                    contextUsed: 0
+                    contextUsed: statusEvent.contextUsed ?? 0,
+                    tokenBreakdown: statusEvent.tokens
                 });
             }
         });
@@ -116,7 +114,7 @@ export class AppComponent implements AfterViewInit {
             const zoom = this.flow.currentViewport().zoom;
             this.atMaxZoom.set(zoom >= 1.5);
             this.atMinZoom.set(zoom <= 0.1);
-        }, { injector: this.injector });
+        }, {injector: this.injector});
     }
 
     fitView(): void {
@@ -131,13 +129,8 @@ export class AppComponent implements AfterViewInit {
         this.flow.zoomOut();
     }
 
-    toggleSettings(): void {
-        this.settingsOpen.update(v => !v);
-    }
-
-    protected readonly ZoomIn = ZoomIn;
-    protected readonly ZoomOut = ZoomOut;
-    protected readonly Expand = Expand;
     protected readonly Telescope01Icon = Telescope01Icon;
-    protected readonly Setting06Icon = Setting06Icon;
+    protected readonly SearchAddIcon = SearchAddIcon;
+    protected readonly SearchMinusIcon = SearchMinusIcon;
+    protected readonly ArrowExpandIcon = ArrowExpandIcon;
 }

@@ -65,6 +65,22 @@ export class FlowComponent {
             type: 'agent',
             entityId: agent.sessionId,
         });
+
+        // If this is a subagent spawned by a parent, create message node for the relationship
+        if (agent.targetSessionId) {
+            const parentId = agent.targetSessionId;
+            const childId = agent.sessionId;
+            const messageId = `spawn-${parentId}-${childId}`;
+            this.addNode('message', messageId, {
+                type: 'message',
+                entityId: messageId,
+                content: agent.prompt || 'spawned subagent',
+                senderId: parentId,
+                receiverId: childId,
+            }, parentId);
+            this.addEdge(parentId, messageId);
+            this.addEdge(messageId, childId);
+        }
     }
 
     public addMessage(sessionId: string, content: string) {

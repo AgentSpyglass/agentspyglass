@@ -21,7 +21,7 @@
 			title="Zoom in"
 	>
 		<hugeicons-icon
-				[icon]="ZoomIn"
+				[icon]="SearchAddIcon"
 				[size]="18"
 				color="currentColor"
 				[strokeWidth]="1.5" />
@@ -34,7 +34,7 @@
 			title="Zoom out"
 	>
 		<hugeicons-icon
-				[icon]="ZoomOut"
+				[icon]="SearchMinusIcon"
 				[size]="18"
 				color="currentColor"
 				[strokeWidth]="1.5" />
@@ -46,25 +46,11 @@
 			title="Fit all nodes"
 	>
 		<hugeicons-icon
-				[icon]="Expand"
-				[size]="18"
-				color="currentColor"
-				[strokeWidth]="1.5" />
-	</button>
-	<button
-			class="grid h-8 w-8 place-items-center rounded-md text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
-			(click)="toggleSettings()"
-			aria-label="Settings"
-			title="Settings"
-	>
-		<hugeicons-icon
-				[icon]="Setting06Icon"
+				[icon]="ArrowExpandIcon"
 				[size]="18"
 				color="currentColor"
 				[strokeWidth]="1.5" />
 	</button>
 </div>
-
-<settings [open]="settingsOpen()" (closed)="settingsOpen.set(false)"></settings>
 
 <flow></flow>

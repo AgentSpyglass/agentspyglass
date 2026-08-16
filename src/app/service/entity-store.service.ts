@@ -18,8 +18,14 @@ export class EntityStoreService {
 
     upsertAgent(agent: Agent): void {
         this.agents.update(map => {
+            // Event cost/tokens are incremental per step; accumulate onto existing totals.
+            const previous = map.get(agent.sessionId);
             const next = new Map(map);
-            next.set(agent.sessionId, agent);
+            next.set(agent.sessionId, {
+                ...agent,
+                cost: (previous?.cost ?? 0) + (agent.cost ?? 0),
+                tokens: (previous?.tokens ?? 0) + (agent.tokens ?? 0),
+            });
             return next;
         });
     }

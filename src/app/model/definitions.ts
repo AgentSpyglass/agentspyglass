@@ -1,3 +1,5 @@
+import { TokenBreakdown } from '@agentspyglass/core';
+
 export type NodeType = 'agent' | 'mcp' | 'message' | 'info';
 
 export type NodeData = {
@@ -9,7 +11,7 @@ export type NodeData = {
 }
 
 export type StatusData = {
-    tokens: number;
     cost: number;
-    contextUsed: number
+    contextUsed: number;
+    tokenBreakdown?: TokenBreakdown;
 }

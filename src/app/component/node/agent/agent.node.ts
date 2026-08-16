@@ -4,7 +4,10 @@ import {NodeData} from "../../../model/definitions";
 import {LowerCasePipe} from "@angular/common";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
+import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
+import {HugeiconsIconComponent} from "@hugeicons/angular";
+import {Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
 
 @Component({
     selector: 'agent-node',
@@ -15,7 +18,9 @@ import {EntityStoreService} from "../../../service/entity-store.service";
         LowerCasePipe,
         HandleComponent,
         TextContainerComponent,
-        NameCasePipe
+        NameCasePipe,
+        CompactNumberPipe,
+        HugeiconsIconComponent
     ]
 })
 export class AgentNode extends CustomNodeComponent<NodeData> {
@@ -26,4 +31,7 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
         if (!data?.entityId) return undefined;
         return this.entityStore.getAgent(data.entityId);
     });
+
+    protected readonly Coins01Icon = Coins01Icon;
+    protected readonly CpuIcon = CpuIcon;
 }

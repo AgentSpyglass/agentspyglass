@@ -1,5 +1,5 @@
 ---
-description: Writes Tauri/Rust backend code — commands, IPC handlers, window management.
+description: Writes Tauri/Rust backend and Angular frontend code — commands, IPC handlers, window management, ui, components, style.
 mode: subagent
 model: opencode-go/mimo-v2.5
 permission:

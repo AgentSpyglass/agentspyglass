@@ -9,13 +9,15 @@ import {SessionInfoComponent} from "./component/session-info/session-info.compon
 import {EntityStoreService} from "./service/entity-store.service";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {StatusData} from "./model/definitions";
+import {DefaultImageDirective} from "./directive/default-image.directive";
 
 @Component({
     selector: "app-root",
     imports: [
         HugeiconsIconComponent,
         FlowComponent,
-        SessionInfoComponent
+        SessionInfoComponent,
+        DefaultImageDirective
     ],
     templateUrl: "./app.component.html",
     styleUrl: "./app.component.css",
@@ -33,6 +35,32 @@ export class AppComponent implements AfterViewInit {
         contextUsed: 0
     });
 
+    readonly zoomControls: {
+        icon: any;
+        label: string;
+        action: () => void;
+        disabled: () => boolean;
+    }[] = [
+        {
+            icon: SearchAddIcon,
+            label: 'Zoom in',
+            action: () => this.zoomIn(),
+            disabled: () => this.atMaxZoom(),
+        },
+        {
+            icon: SearchMinusIcon,
+            label: 'Zoom out',
+            action: () => this.zoomOut(),
+            disabled: () => this.atMinZoom(),
+        },
+        {
+            icon: ArrowExpandIcon,
+            label: 'Fit view',
+            action: () => this.fitView(),
+            disabled: () => false,
+        },
+    ];
+
     readonly atMaxZoom = signal(false);
     readonly atMinZoom = signal(false);
 
@@ -43,7 +71,6 @@ export class AppComponent implements AfterViewInit {
             const agent = {
                 role: agentEvent.role,
                 name: agentEvent.name,
-                prompt: agentEvent.prompt,
                 sessionId: agentEvent.sessionId,
                 model: agentEvent.model,
                 brand: this.brand.resolveBrand(
@@ -91,7 +118,7 @@ export class AppComponent implements AfterViewInit {
         });
 
         this.bridge.messageEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(messageEvent => {
-            this.flow.addMessage(messageEvent.sessionId, messageEvent.content);
+            this.flow.addMessage(messageEvent.sessionId, messageEvent.content, messageEvent.role, messageEvent.parentID);
         });
 
         this.bridge.statusEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(statusEvent => {

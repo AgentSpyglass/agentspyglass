@@ -196,20 +196,22 @@
 	</section>
 
 	<section>
-		<div
-				class="px-2 border-t-1 w-full h-12 border-tertiary transition inline-flex items-center gap-2 {{ open()? 'justify-start' : 'justify-center' }} cursor-pointer hover:bg-accent/30 hover:text-text"
-				(click)="toggleSettings()">
-			<hugeicons-icon
-					[icon]="Settings01Icon"
-					[size]="24"
-					color="currentColor"
-					[strokeWidth]="2"
-			/>
+		@for (control of controls; track control.label) {
+			<button class="px-2 border-t-1 w-full h-12 border-tertiary transition inline-flex items-center gap-2 {{ open()? 'justify-start' : 'justify-center' }} cursor-pointer hover:bg-accent/30 hover:text-text"
+			     (click)="control.action()"
+				[disabled]="control.disabled()">
+				<hugeicons-icon
+						[icon]="control.icon"
+						[size]="24"
+						color="currentColor"
+						[strokeWidth]="2"
+				/>
 
-			@if (open()) {
-				<p class="font-black uppercase select-none">Settings</p>
-			}
-		</div>
+				@if (open()) {
+					<p class="font-black uppercase select-none">{{ control.label }}</p>
+				}
+			</button>
+		}
 	</section>
 </aside>
 

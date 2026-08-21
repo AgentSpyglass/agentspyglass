@@ -10,7 +10,7 @@ import {
     SquareIcon,
     Coins01Icon,
     CpuIcon, Books02Icon, Menu01Icon, Settings01Icon, ArrowRight01Icon, DollarCircleIcon,
-    AiContentGenerator02Icon, ArrowDown01Icon, ArrowUp01Icon, RemoveSquareIcon, Loading03Icon
+    AiContentGenerator02Icon, ArrowDown01Icon, ArrowUp01Icon, RemoveSquareIcon, Loading03Icon, Presentation01Icon
 } from "@hugeicons/core-free-icons";
 import {StatusData} from "../../model/definitions";
 import {SettingsComponent} from "../settings/settings.component";
@@ -38,6 +38,26 @@ export class SessionInfoComponent {
 
     tokenBreakdown = computed(() => this.usage().tokenBreakdown);
 
+    readonly controls: {
+        icon: any;
+        label: string;
+        action: () => void;
+        disabled: () => boolean;
+    }[] = [
+        {
+            icon: Presentation01Icon,
+            label: 'Presentation',
+            action: () => this.toggleSettings(),
+            disabled: () => true,
+        },
+        {
+            icon: Settings01Icon,
+            label: 'Settings',
+            action: () => this.toggleSettings(),
+            disabled: () => false,
+        },
+    ];
+
     toggle() {
         this.open.update((v) => !v);
     }
@@ -50,17 +70,10 @@ export class SessionInfoComponent {
         this.settingsOpen.update(v => !v);
     }
 
-    protected readonly CheckListIcon = CheckListIcon;
-    protected readonly ChevronDown = ChevronDown;
-    protected readonly ChevronUp = ChevronUp;
     protected readonly CheckmarkSquare01Icon = CheckmarkSquare01Icon;
     protected readonly SquareIcon = SquareIcon;
-    protected readonly BinocularsIcon = BinocularsIcon;
-    protected readonly Coins01Icon = Coins01Icon;
-    protected readonly CpuIcon = CpuIcon;
     protected readonly Books02Icon = Books02Icon;
     protected readonly Menu01Icon = Menu01Icon;
-    protected readonly Settings01Icon = Settings01Icon;
     protected readonly ArrowRight01Icon = ArrowRight01Icon;
     protected readonly DollarCircleIcon = DollarCircleIcon;
     protected readonly AiContentGenerator02Icon = AiContentGenerator02Icon;

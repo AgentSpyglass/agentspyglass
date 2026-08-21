@@ -3,7 +3,7 @@
          [class.bg-secondary/20]="agent()?.role === 'subagent'">
 	@if (agent()) {
 		<div class="font-black inline-flex items-center h-full gap-2">
-			<img [src]="agent()!.brand.logo" alt="AI logo" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+			<img [src]="agent()!.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
 
 			<div>
 				<div>{{ agent()!.name | nameCase }}</div>
@@ -12,10 +12,6 @@
 				</div>
 			</div>
 		</div>
-
-		@if (agent()?.prompt) {
-			<text-container class="text-xs font-light p-4 rounded-lg bg-accent/20" [text]="agent()!.prompt" />
-		}
 
 		@if (agent()!.cost || agent()!.tokens) {
 			<div class="flex items-center gap-3 text-xs font-light text-text/50">

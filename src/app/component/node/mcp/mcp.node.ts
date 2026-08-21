@@ -5,6 +5,7 @@ import {NodeData} from "../../../model/definitions";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
+import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
     selector: 'mcp-node',
@@ -14,7 +15,8 @@ import {EntityStoreService} from "../../../service/entity-store.service";
     imports: [
         HandleComponent,
         TextContainerComponent,
-        NameCasePipe
+        NameCasePipe,
+        DefaultImageDirective
     ]
 })
 export class McpNode extends CustomNodeComponent<NodeData> {

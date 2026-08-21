@@ -4,20 +4,6 @@ import { Brand } from "@agentspyglass/core";
 @Injectable({ providedIn: "root" })
 export class BrandService {
 
-    /** Shown whenever no provider/MCP logo can be resolved. Inline SVG so it never fails to load. */
-    private readonly FALLBACK_LOGO =
-        'data:image/svg+xml;utf8,' + encodeURIComponent(
-            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="12" cy="12" r="9"/>
-        <path d="M9.3 9.5a2.7 2.7 0 1 1 3.7 2.5c-1 .4-1.6 1.1-1.6 2.3" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="17.2" r="0.7" fill="currentColor" stroke="none"/>
-      </svg>`
-        );
-
-    // ---------------------------------------------------------------------
-    // Model / LLM provider logos
-    // ---------------------------------------------------------------------
-
     private readonly FAVICONS: Record<string, string> = {
         openai: 'https://openai.com/favicon.ico',
         anthropic: 'https://www.anthropic.com/favicon.ico',
@@ -34,6 +20,7 @@ export class BrandService {
         togetherai: 'https://www.together.ai/favicon.ico',
         together: 'https://www.together.ai/favicon.ico',
         azure: 'https://azure.microsoft.com/favicon.ico',
+        microsoft: 'https://www.microsoft.com/favicon.ico',
         opencode: 'https://opencode.ai/favicon.ico',
         cohere: 'https://cohere.com/favicon.ico',
         perplexity: 'https://www.perplexity.ai/favicon.ico',
@@ -44,6 +31,32 @@ export class BrandService {
         nvidia: 'https://www.nvidia.com/favicon.ico',
         huggingface: 'https://huggingface.co/favicon.ico',
         ollama: 'https://ollama.com/favicon.ico',
+        ai21: 'https://www.ai21.com/favicon.ico',
+        databricks: 'https://www.databricks.com/favicon.ico',
+        ibm: 'https://www.ibm.com/favicon.ico',
+        watsonx: 'https://www.ibm.com/favicon.ico',
+        stabilityai: 'https://stability.ai/favicon.ico',
+        stability: 'https://stability.ai/favicon.ico',
+        zhipuai: 'https://www.zhipuai.cn/favicon.ico',
+        glm: 'https://www.zhipuai.cn/favicon.ico',
+        baidu: 'https://www.baidu.com/favicon.ico',
+        ernie: 'https://www.baidu.com/favicon.ico',
+        '01ai': 'https://www.01.ai/favicon.ico',
+        yi: 'https://www.01.ai/favicon.ico',
+        reka: 'https://www.reka.ai/favicon.ico',
+        snowflake: 'https://www.snowflake.com/favicon.ico',
+        ai2: 'https://allenai.org/favicon.ico',
+        moonshot: 'https://www.moonshot.cn/favicon.ico',
+        fireworks: 'https://fireworks.ai/favicon.ico',
+        anyscale: 'https://www.anyscale.com/favicon.ico',
+        replicate: 'https://replicate.com/favicon.ico',
+        cerebras: 'https://www.cerebras.ai/favicon.ico',
+        sambanova: 'https://sambanova.ai/favicon.ico',
+        inflection: 'https://inflection.ai/favicon.ico',
+        writer: 'https://writer.com/favicon.ico',
+        nousresearch: 'https://nousresearch.com/favicon.ico',
+        voyageai: 'https://www.voyageai.com/favicon.ico',
+        jina: 'https://jina.ai/favicon.ico',
     };
 
     private readonly MODEL_PREFIXES: Record<string, string> = {
@@ -57,34 +70,40 @@ export class BrandService {
         'deepseek-': 'deepseek',
         'mistral-': 'mistral',
         'mixtral-': 'mistral',
+        'pixtral-': 'mistral',
+        'codestral-': 'mistral',
         'llama-': 'meta',
         'grok-': 'xai',
         'qwen-': 'qwen',
         'command-': 'cohere',
         'sonar-': 'perplexity',
+        'phi-': 'microsoft',
+        'dbrx-': 'databricks',
+        'granite-': 'ibm',
+        'ernie-': 'baidu',
+        'glm-': 'zhipuai',
+        'yi-': '01ai',
+        'jamba-': 'ai21',
+        'reka-': 'reka',
+        'olmo-': 'ai2',
+        'arctic-': 'snowflake',
+        'stablelm-': 'stabilityai',
+        'moonshot-': 'moonshot',
+        'nemotron-': 'nvidia',
     };
 
-    // ---------------------------------------------------------------------
-    // MCP server logos.
-    // Object key order = match priority. Requested priority servers are
-    // listed first, followed by a broad set of other common MCP servers.
-    // ---------------------------------------------------------------------
-
     private readonly MCP_FAVICONS: Record<string, string> = {
-        // --- opencode tools ---
         opencode: 'https://opencode.ai/favicon.ico',
 
-        // --- priority ---
         context7: 'https://context7.com/favicon.ico',
         bruno: 'https://www.usebruno.com/favicon.ico',
         github: 'https://github.com/favicon.ico',
-        playwright: 'https://playwright.dev/img/favicon.ico',
+        playwright: 'https://playwright.dev/img/playwright-logo.svg',
         postgres: 'https://www.postgresql.org/favicon.ico',
         postgresql: 'https://www.postgresql.org/favicon.ico',
         serena: 'https://raw.githubusercontent.com/oraios/serena/main/resources/serena-icon.svg',
         sequentialthinking: 'https://modelcontextprotocol.io/favicon.ico',
 
-        // --- other common MCP servers ---
         modelcontextprotocol: 'https://modelcontextprotocol.io/favicon.ico',
         filesystem: 'https://modelcontextprotocol.io/favicon.ico',
         memory: 'https://modelcontextprotocol.io/favicon.ico',
@@ -113,6 +132,9 @@ export class BrandService {
         aws: 'https://aws.amazon.com/favicon.ico',
         googledrive: 'https://www.google.com/favicon.ico',
         googlemaps: 'https://maps.google.com/favicon.ico',
+        googlecalendar: 'https://calendar.google.com/favicon.ico',
+        googlesheets: 'https://sheets.google.com/favicon.ico',
+        gmail: 'https://mail.google.com/favicon.ico',
         bravesearch: 'https://brave.com/favicon.ico',
         brave: 'https://brave.com/favicon.ico',
         jira: 'https://www.atlassian.com/favicon.ico',
@@ -122,9 +144,44 @@ export class BrandService {
         netlify: 'https://www.netlify.com/favicon.ico',
         digitalocean: 'https://www.digitalocean.com/favicon.ico',
         npm: 'https://www.npmjs.com/favicon.ico',
+        zapier: 'https://zapier.com/favicon.ico',
+        asana: 'https://asana.com/favicon.ico',
+        trello: 'https://trello.com/favicon.ico',
+        airtable: 'https://airtable.com/favicon.ico',
+        discord: 'https://discord.com/favicon.ico',
+        telegram: 'https://telegram.org/favicon.ico',
+        salesforce: 'https://www.salesforce.com/favicon.ico',
+        hubspot: 'https://www.hubspot.com/favicon.ico',
+        zendesk: 'https://www.zendesk.com/favicon.ico',
+        shopify: 'https://www.shopify.com/favicon.ico',
+        twilio: 'https://www.twilio.com/favicon.ico',
+        sendgrid: 'https://sendgrid.com/favicon.ico',
+        grafana: 'https://grafana.com/favicon.ico',
+        datadog: 'https://www.datadoghq.com/favicon.ico',
+        pagerduty: 'https://www.pagerduty.com/favicon.ico',
+        circleci: 'https://circleci.com/favicon.ico',
+        terraform: 'https://www.terraform.io/favicon.ico',
+        bigquery: 'https://cloud.google.com/favicon.ico',
+        clickhouse: 'https://clickhouse.com/favicon.ico',
+        neon: 'https://neon.tech/favicon.ico',
+        planetscale: 'https://planetscale.com/favicon.ico',
+        railway: 'https://railway.app/favicon.ico',
+        render: 'https://render.com/favicon.ico',
+        apify: 'https://apify.com/favicon.ico',
+        exa: 'https://exa.ai/favicon.ico',
+        tavily: 'https://tavily.com/favicon.ico',
+        browserbase: 'https://www.browserbase.com/favicon.ico',
+        e2b: 'https://e2b.dev/favicon.ico',
+        perplexity: 'https://www.perplexity.ai/favicon.ico',
+        youtube: 'https://www.youtube.com/favicon.ico',
+        spotify: 'https://www.spotify.com/favicon.ico',
+        pinecone: 'https://www.pinecone.io/favicon.ico',
+        weaviate: 'https://weaviate.io/favicon.ico',
+        qdrant: 'https://qdrant.tech/favicon.ico',
+        chroma: 'https://www.trychroma.com/favicon.ico',
+        zoom: 'https://zoom.us/favicon.ico',
     };
 
-    /** Maps common raw MCP identifiers to a canonical key in MCP_FAVICONS. */
     private readonly MCP_ALIASES: Record<string, string> = {
         'sequential-thinking': 'sequentialthinking',
         'sequential_thinking': 'sequentialthinking',
@@ -144,63 +201,38 @@ export class BrandService {
         'google-drive': 'googledrive',
         'gdrive': 'googledrive',
         'google-maps': 'googlemaps',
+        'google-calendar': 'googlecalendar',
+        'google-sheets': 'googlesheets',
         'brave-search': 'bravesearch',
+        'circle-ci': 'circleci',
+        'e2b-code-interpreter': 'e2b',
     };
-
-    /**
-     * Known MCP server name "stems", longest-first, used to correctly split
-     * opencode-style tool names ("<mcp>_<tool>") when the server name itself
-     * contains an underscore-adjacent hyphenated word (e.g. "sequential-thinking").
-     * Not required for single-word servers like "context7" or "github", but
-     * keeps multi-word server names from being mis-split.
-     */
-    private readonly MCP_NAME_STEMS: string[] = [
-        'sequential-thinking',
-        'sequentialthinking',
-        'google-drive',
-        'google-maps',
-        'brave-search',
-        'postgres-mcp',
-    ];
 
     resolveBrand(model: string | null | undefined, provider: string | null | undefined): Brand {
         const modelStr = (model || '').trim();
         const providerStr = (provider || '').trim();
 
-        // 1. Try to resolve a logo from the MODEL first — either because the
-        //    model name itself matches a FAVICONS key (e.g. "gemini-1.5-pro"),
-        //    or because it starts with a known model prefix (e.g. "gpt-4o",
-        //    "claude-opus-4").
         let src = this.matchLogo(modelStr, this.FAVICONS)
             ?? this.matchLogo(this.providerFromModelPrefix(modelStr), this.FAVICONS);
 
-        // 2. Fall back to the explicit provider, if given.
         if (!src) {
             src = this.matchLogo(providerStr, this.FAVICONS);
         }
 
-        // 3. Final fallback: generic icon.
         if (!src) {
-            src = this.FALLBACK_LOGO;
+            src = 'assets/agent_not_found.svg';
         }
 
         const providerName = providerStr || this.providerFromModelPrefix(modelStr) || modelStr;
         return { logo: src, name: providerName };
     }
 
-    /** Resolve a Brand directly from an MCP server name (e.g. "context7", "sequential-thinking"). */
     resolveMcpBrand(name: string | null | undefined): Brand {
         const raw = (name || 'opencode').trim();
-        const src = this.matchLogo(raw, this.MCP_FAVICONS, this.MCP_ALIASES) ?? this.FALLBACK_LOGO;
+        const src = this.matchLogo(raw, this.MCP_FAVICONS, this.MCP_ALIASES) ?? this.MCP_FAVICONS['opencode'];
         return { logo: src, name: raw };
     }
 
-    /**
-     * Maps a model string to a provider name using ONLY the model's own
-     * prefix or "<provider>/<model>" convention — never looks at an
-     * explicit `provider` argument. Used as the second step of the
-     * model-first lookup in resolveBrand().
-     */
     private providerFromModelPrefix(model: string): string {
         if (!model) return '';
         const slash = model.indexOf('/');
@@ -212,12 +244,6 @@ export class BrandService {
         return '';
     }
 
-    /**
-     * Normalizes `raw` (lowercase, strip non-alphanumerics), resolves it through
-     * an optional alias table, then finds the best matching logo in `table`.
-     * Exact match wins; otherwise the first key (in the table's insertion /
-     * priority order) that the normalized input starts with is used.
-     */
     private matchLogo(raw: string, table: Record<string, string>, aliases?: Record<string, string>): string | null {
         if (!raw) return null;
         const rawNorm = raw.toLowerCase().trim();

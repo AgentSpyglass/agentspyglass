@@ -5,6 +5,7 @@ import {LowerCasePipe} from "@angular/common";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
 import {TextContainerComponent} from "../../text-container.component";
+import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
     selector: 'message-node',
@@ -15,7 +16,8 @@ import {TextContainerComponent} from "../../text-container.component";
         LowerCasePipe,
         HandleComponent,
         NameCasePipe,
-        TextContainerComponent
+        TextContainerComponent,
+        DefaultImageDirective
     ]
 })
 export class MessageNode extends CustomNodeComponent<NodeData> {
@@ -31,7 +33,7 @@ export class MessageNode extends CustomNodeComponent<NodeData> {
                 model: 'Human',
                 brand: {
                     name: 'User',
-                    logo: 'assets/user.png',
+                    logo: 'assets/user.svg',
                 }
             }
         }

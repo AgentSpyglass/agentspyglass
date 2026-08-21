@@ -8,6 +8,7 @@ import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
+import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
     selector: 'agent-node',
@@ -20,7 +21,8 @@ import {Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
         TextContainerComponent,
         NameCasePipe,
         CompactNumberPipe,
-        HugeiconsIconComponent
+        HugeiconsIconComponent,
+        DefaultImageDirective
     ]
 })
 export class AgentNode extends CustomNodeComponent<NodeData> {

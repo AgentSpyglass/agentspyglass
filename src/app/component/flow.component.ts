@@ -1,13 +1,19 @@
-import {ChangeDetectionStrategy, Component, computed, inject, signal, viewChild, WritableSignal} from "@angular/core";
-import {ComponentNode, Edge, Node, VflowComponent} from "ngx-vflow";
+import {ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
+import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
-import {InfoNode} from "./node/info/info.node";
-import {AgentNode} from "./node/agent/agent.node";
 import {McpNode} from "./node/mcp/mcp.node";
+import {resolveNodeComponent} from "./node/node-types";
 import {EntityStoreService} from "../service/entity-store.service";
+import {layoutGraph} from "../layout/graph-layout";
 
 type Point = { x: number; y: number };
+
+/** Provisional slot until the relayout effect assigns final positions. */
+const PROVISIONAL_POINT: Point = {x: 650, y: 150};
+
+/** Id prefix of the synthetic user node hanging above each primary agent. */
+const USER_NODE_PREFIX = "user-";
 
 @Component({
     selector: "flow",
@@ -30,7 +36,7 @@ type Point = { x: number; y: number };
 })
 export class FlowComponent {
     vflow = viewChild.required(VflowComponent);
-    nodes: WritableSignal<Node[]> = signal([]);
+    nodes: WritableSignal<ComponentNode[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
     private entityStore = inject(EntityStoreService);
@@ -38,22 +44,56 @@ export class FlowComponent {
     /** Reactive viewport state — safe to read before vflow initializes. */
     readonly currentViewport = computed(() => this.vflow().viewport() ?? {zoom: 1, x: 0, y: 0});
 
-    /**
-     * Agent-centered relational layout.
-     *
-     *       User
-     *        |
-     * MCPs <-> Agent <-> Subagents
-     *
-     * Each primary agent starts a cluster in the center column; whole clusters stack vertically.
-     */
-    private readonly LAYOUT = {
-        cluster: { centerX: 650, baseY: 150, spacingY: 750 },
-        user: { offsetY: -230 },
-        mcp: { offsetX: -400, spacingY: 240 },
-        subagent: { offsetX: 400, spacingY: 240 },
-        info: { x: 400, y: 400 }
-    };
+    constructor() {
+        /**
+         * Reactive relayout over the whole graph (see layoutGraph):
+         *
+         *   User
+         *    |
+         * MCPs <- Agent -> Subagents   (clusters stack vertically)
+         *
+         * Every nodes()/edges() mutation re-runs the layered layout and glides
+         * existing points to their new spot. Points are read/written inside
+         * untracked() so this effect reacts to graph topology only — never to
+         * its own position writes (loop prevention).
+         */
+        effect(() => {
+            const nodes = this.nodes();
+            const edges = this.edges();
+            if (nodes.length === 0) return;
+
+            const pinnedIds = new Set(nodes.filter(n => n.id.startsWith(USER_NODE_PREFIX)).map(n => n.id));
+            const inverseSideIds = new Set(nodes.filter(n => n.type === McpNode).map(n => n.id));
+
+            /**
+             * Macro spacing. layerGap cannot drop below ~408 without overlap:
+             * MCP cards are fixed w-96 (384px) and sit one layer left of the
+             * agent column, so 400 already leaves only ~16px clearance.
+             * Compaction therefore comes from the cross axis: siblingGap and
+             * pinOffset shrink the vertical sprawl of MCP/subagent stacks and
+             * the pinned user node.
+             */
+            const positions = layoutGraph(nodes, edges, {
+                orientation: 'LR',
+                layerGap: 400,
+                siblingGap: 180,
+                origin: {x: 650, y: 150},
+                pinnedIds,
+                inverseSideIds,
+                pinOffset: 160,
+            });
+
+            untracked(() => {
+                for (const node of nodes) {
+                    const next = positions.get(node.id);
+                    if (!next) continue;
+                    const current = node.point();
+                    if (current.x === next.x && current.y === next.y) continue;
+                    node.point.set(next);
+                }
+            });
+        });
+    }
 
     fitView(): void {
         this.vflow().fitView({padding: 0.3, duration: 200});
@@ -72,39 +112,22 @@ export class FlowComponent {
     }
 
     public addAgent(agent: Agent) {
-        if (agent.targetSessionId) {
-            const parentId = agent.targetSessionId;
-            const parentPoint = this.nodes().find(n => n.id === parentId)?.point();
-            const index = this.subagentCount(parentId);
-            const point = parentPoint
-                ? this.placeRightOf(parentPoint, index)
-                : this.placeRightOf({x: this.LAYOUT.cluster.centerX, y: this.LAYOUT.cluster.baseY}, index);
+        this.addNode('agent', agent.sessionId, {type: 'agent', entityId: agent.sessionId}, PROVISIONAL_POINT);
 
-            this.addNode('agent', agent.sessionId, {type: 'agent', entityId: agent.sessionId}, point);
-            this.addEdge(parentId, agent.sessionId, 's-right', 't-left');
+        if (agent.targetSessionId) {
+            this.addEdge(agent.targetSessionId, agent.sessionId, 's-right', 't-left');
             return;
         }
 
-        this.addNode('agent', agent.sessionId, {type: 'agent', entityId: agent.sessionId}, this.placeRootAgent());
-
-        const agentPoint = this.nodes().find(n => n.id === agent.sessionId)?.point();
-        if (agentPoint) {
-            const userId = `user-${agent.sessionId}`;
-            this.addNode('agent', userId, {type: 'agent', entityId: 'user'}, this.placeAbove(agentPoint));
-            this.addEdge(userId, agent.sessionId, 's-bottom', 't-top');
-        }
+        const userId = `${USER_NODE_PREFIX}${agent.sessionId}`;
+        this.addNode('agent', userId, {type: 'agent', entityId: 'user'}, PROVISIONAL_POINT);
+        this.addEdge(userId, agent.sessionId, 's-bottom', 't-top');
     }
 
     public addMcp(from: string, mcp: MCP) {
-        const ownerPoint = this.nodes().find(n => n.id === from)?.point();
-        const index = this.entityStore.getMcpNamesFor(from).length;
         this.entityStore.associateMcp(from, mcp.name);
 
-        const point = ownerPoint
-            ? this.placeLeftOf(ownerPoint, index)
-            : this.placeLeftOf({x: this.LAYOUT.cluster.centerX, y: this.LAYOUT.cluster.baseY}, index);
-
-        this.addNode('mcp', mcp.name, {type: 'mcp', entityId: mcp.name}, point);
+        this.addNode('mcp', mcp.name, {type: 'mcp', entityId: mcp.name}, PROVISIONAL_POINT);
         this.addEdge(from, mcp.name, 's-left', 't-right');
     }
 
@@ -113,7 +136,7 @@ export class FlowComponent {
 
         const node: ComponentNode = {
             id: nodeId,
-            type: this.getType(type),
+            type: resolveNodeComponent(type),
             point: signal(point),
             data: signal(data)
         };
@@ -137,47 +160,5 @@ export class FlowComponent {
                 targetHandle
             }]);
         }
-    }
-
-    getType(type: NodeType) {
-        switch (type) {
-            case 'agent':
-                return AgentNode;
-            case 'mcp':
-                return McpNode;
-        }
-
-        return InfoNode;
-    }
-
-    private rootCount(): number {
-        return this.nodes().filter(n => {
-            if (n.type !== AgentNode) return false;
-            const agent = this.entityStore.getAgent(n.id);
-            return !!agent && !agent.targetSessionId;
-        }).length;
-    }
-
-    private subagentCount(parentId: string): number {
-        return this.nodes().filter(n => n.type === AgentNode && this.entityStore.getAgent(n.id)?.targetSessionId === parentId).length;
-    }
-
-    private placeRootAgent(): Point {
-        return {
-            x: this.LAYOUT.cluster.centerX,
-            y: this.LAYOUT.cluster.baseY + this.rootCount() * this.LAYOUT.cluster.spacingY
-        };
-    }
-
-    private placeAbove(point: Point): Point {
-        return {x: point.x, y: point.y + this.LAYOUT.user.offsetY};
-    }
-
-    private placeLeftOf(point: Point, index: number): Point {
-        return {x: point.x + this.LAYOUT.mcp.offsetX, y: point.y + index * this.LAYOUT.mcp.spacingY};
-    }
-
-    private placeRightOf(point: Point, index: number): Point {
-        return {x: point.x + this.LAYOUT.subagent.offsetX, y: point.y + index * this.LAYOUT.subagent.spacingY};
     }
 }

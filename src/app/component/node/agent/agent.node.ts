@@ -7,7 +7,7 @@ import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
 import {AgentModalService} from "../../../service/agent-modal.service";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
-import {Coins01Icon, CpuIcon, FullScreenIcon} from "@hugeicons/core-free-icons";
+import {ArrowExpandDiagonal01Icon, Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
 import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
@@ -36,6 +36,7 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
     });
     isSubagent = computed(() => this.agent()?.role === 'subagent');
     isUser = computed(() => this.agent()?.sessionId === USER_AGENT.sessionId);
+    inModal = computed(() => this.data()?.inModal === true);
 
     openModal(): void {
         const id = this.data()?.entityId;
@@ -44,5 +45,5 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
 
     protected readonly Coins01Icon = Coins01Icon;
     protected readonly CpuIcon = CpuIcon;
-    protected readonly FullScreenIcon = FullScreenIcon;
+    protected readonly ArrowExpandDiagonal01Icon = ArrowExpandDiagonal01Icon;
 }

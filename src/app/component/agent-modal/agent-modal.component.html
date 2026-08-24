@@ -4,15 +4,18 @@
 		<div #panel class="bg-bg border border-accent rounded-lg shadow-xl w-[80vw] max-w-5xl h-[75vh] flex flex-col overflow-hidden"
 		     (click)="$event.stopPropagation()">
 			<div class="flex items-center justify-between p-3 border-b border-accent/30">
-				<h2 class="font-black text-accent inline-flex items-center gap-2">
-					<hugeicons-icon
-							[icon]="WorkflowSquareIcon"
-							[size]="20"
-							color="currentColor"
-							[strokeWidth]="1.5"
-					/>
-					{{ agent.name | nameCase }}
-				</h2>
+				<section class="font-black inline-flex items-center gap-2">
+					<img [src]="agent.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg"
+					     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+
+					<div>
+						<div>{{ agent.name | nameCase }}</div>
+						<div class="text-xs font-light text-text/50">
+							{{ agent.model | lowercase }}
+						</div>
+					</div>
+				</section>
+
 				<button
 						class="grid h-8 w-8 place-items-center rounded-md text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
 						(click)="close()"

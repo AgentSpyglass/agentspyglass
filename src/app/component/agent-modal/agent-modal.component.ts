@@ -1,7 +1,8 @@
 import {ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from '@angular/core';
+import {LowerCasePipe} from "@angular/common";
 import {ComponentNode, Edge, VflowComponent} from 'ngx-vflow';
 import {HugeiconsIconComponent} from "@hugeicons/angular";
-import {Cancel01Icon, WorkflowSquareIcon} from "@hugeicons/core-free-icons";
+import {Cancel01Icon} from "@hugeicons/core-free-icons";
 import {AgentModalService} from "../../service/agent-modal.service";
 import {EntityStoreService} from "../../service/entity-store.service";
 import {GsapAnimationService} from "../../service/gsap-animation.service";
@@ -9,6 +10,7 @@ import {NodeData, USER_AGENT} from "../../model/definitions";
 import {resolveNodeComponent} from "../node/node-types";
 import {GraphLayoutOptions, layoutGraph} from "../../layout/graph-layout";
 import {NameCasePipe} from "../../pipe/namecase.pipe";
+import {DefaultImageDirective} from "../../directive/default-image.directive";
 
 /** Micro view: active agent centred, user above, all children on one row below. */
 const MODAL_LAYOUT: GraphLayoutOptions = {
@@ -26,7 +28,9 @@ const MODAL_LAYOUT: GraphLayoutOptions = {
     imports: [
         HugeiconsIconComponent,
         VflowComponent,
-        NameCasePipe
+        NameCasePipe,
+        LowerCasePipe,
+        DefaultImageDirective
     ],
     host: {
         '(document:keydown.escape)': 'close()'
@@ -104,7 +108,7 @@ export class AgentModalComponent {
             id: 'user',
             type: resolveNodeComponent('agent'),
             point: signal({x: 0, y: 0}),
-            data: signal({type: 'agent', entityId: USER_AGENT.sessionId} satisfies NodeData),
+            data: signal({type: 'agent', entityId: USER_AGENT.sessionId, inModal: true} satisfies NodeData),
         }];
 
         const edgeList: Edge[] = [];
@@ -121,7 +125,7 @@ export class AgentModalComponent {
                 id: agent.sessionId,
                 type: resolveNodeComponent('agent'),
                 point: signal({x: 0, y: MODAL_LAYOUT.layerGap}),
-                data: signal({type: 'agent', entityId: agent.sessionId} satisfies NodeData),
+                data: signal({type: 'agent', entityId: agent.sessionId, inModal: true} satisfies NodeData),
             });
             connect('user', agent.sessionId);
 
@@ -131,7 +135,7 @@ export class AgentModalComponent {
                     id: name,
                     type: resolveNodeComponent('mcp'),
                     point: signal({x: 0, y: MODAL_LAYOUT.layerGap * 2}),
-                    data: signal({type: 'mcp', entityId: name} satisfies NodeData),
+                    data: signal({type: 'mcp', entityId: name, inModal: true} satisfies NodeData),
                 });
                 connect(agent.sessionId, name);
             }
@@ -142,7 +146,7 @@ export class AgentModalComponent {
                     id: sub.sessionId,
                     type: resolveNodeComponent('agent'),
                     point: signal({x: 0, y: MODAL_LAYOUT.layerGap * 2}),
-                    data: signal({type: 'agent', entityId: sub.sessionId} satisfies NodeData),
+                    data: signal({type: 'agent', entityId: sub.sessionId, inModal: true} satisfies NodeData),
                 });
                 connect(agent.sessionId, sub.sessionId);
             }
@@ -169,5 +173,4 @@ export class AgentModalComponent {
     }
 
     protected readonly Cancel01Icon = Cancel01Icon;
-    protected readonly WorkflowSquareIcon = WorkflowSquareIcon;
 }

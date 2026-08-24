@@ -16,13 +16,13 @@
 				</div>
 			</section>
 
-			@if (!isUser()) {
+			@if (!isUser() && !inModal()) {
 				<button class="flex items-center justify-center w-8 h-8 rounded-lg border-1 border-tertiary cursor-pointer hover:bg-accent/30 hover:text-text"
 				        (click)="openModal()"
 				        aria-label="Open agent details"
 				        title="Open agent details">
 					<hugeicons-icon
-							[icon]="FullScreenIcon"
+							[icon]="ArrowExpandDiagonal01Icon"
 							[size]="24"
 							color="currentColor"
 							[strokeWidth]="2"

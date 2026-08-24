@@ -6,6 +6,8 @@ export type NodeData = {
     type: NodeType;
     entityId?: string;
     content?: string;
+    /** UI-only: node rendered inside agent-modal micro-graph → hides fullscreen button. */
+    inModal?: boolean;
 }
 
 /** Synthetic user representation rendered as an agent node above primary agents. UI-only. */

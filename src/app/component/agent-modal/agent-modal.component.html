@@ -1,0 +1,145 @@
+@if (agent(); as agent) {
+	<div #overlay class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity"
+	     (click)="close()">
+		<div #panel class="bg-bg border border-accent rounded-lg shadow-xl w-full max-w-3xl mx-3 max-h-[80vh] flex flex-col overflow-hidden"
+		     (click)="$event.stopPropagation()">
+			<div class="flex items-center justify-between p-3 border-b border-accent/30">
+				<h2 class="font-black text-accent inline-flex items-center gap-2">
+					<hugeicons-icon
+							[icon]="WorkflowSquareIcon"
+							[size]="20"
+							color="currentColor"
+							[strokeWidth]="1.5"
+					/>
+					{{ agent.name | nameCase }}
+				</h2>
+				<button
+						class="grid h-8 w-8 place-items-center rounded-md text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
+						(click)="close()"
+						aria-label="Close agent details"
+				>
+					<hugeicons-icon
+							[icon]="Cancel01Icon"
+							[size]="18"
+							color="currentColor"
+							[strokeWidth]="1.5"
+					/>
+				</button>
+			</div>
+
+			<div class="p-4 overflow-y-auto flex flex-col items-stretch gap-2">
+				@if (topCard(); as top) {
+					<section class="inline-flex items-center gap-3 self-center border {{ topCardIsUser() ? 'bg-accent/10' : 'bg-secondary/20' }} border-tertiary rounded-lg px-4 py-3 w-full max-w-md">
+						<img [src]="top.brand.logo" alt="{{ top.name }} logo" defaultImage="assets/agent_not_found.svg"
+						     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+
+						<div class="min-w-0">
+							<div class="font-bold">{{ top.name | nameCase }}</div>
+							<div class="text-xs font-light text-text/50 truncate">
+								{{ top.model | lowercase }}
+							</div>
+						</div>
+					</section>
+
+					<hugeicons-icon
+							class="self-center text-accent/60"
+							[icon]="ArrowDown01Icon"
+							[size]="24"
+							color="currentColor"
+							[strokeWidth]="2"
+					/>
+				}
+
+				<section class="border-accent border bg-accent/20 p-4 rounded-lg flex flex-col gap-3 w-full">
+					<div class="font-black inline-flex items-center gap-2">
+						<img [src]="agent.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg"
+						     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+
+						<div>
+							<div>{{ agent.name | nameCase }}</div>
+							<div class="text-xs font-light text-text/50">
+								{{ agent.model | lowercase }}
+							</div>
+						</div>
+					</div>
+
+					<div class="flex items-center gap-3 text-xs font-light text-text/50">
+						<span class="inline-flex items-center gap-1">
+							<hugeicons-icon [icon]="Coins01Icon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+							{{ (agent.cost ?? 0) | compactNumber }}
+						</span>
+						<span class="inline-flex items-center gap-1">
+							<hugeicons-icon [icon]="CpuIcon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+							{{ (agent.tokens ?? 0) | compactNumber }}
+						</span>
+					</div>
+				</section>
+
+				<hugeicons-icon
+						class="self-center text-accent/60"
+						[icon]="ArrowDown01Icon"
+						[size]="24"
+						color="currentColor"
+						[strokeWidth]="2"
+				/>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+					<section class="flex flex-col gap-2">
+						<p class="text-text/40 font-bold font-mono text-sm">MCPs</p>
+
+						@for (mcp of mcps(); track mcp.name) {
+							<section class="border-zinc-500 border bg-zinc-500/10 p-4 py-3 rounded-lg flex flex-col gap-2">
+								<div class="font-black inline-flex items-center gap-2">
+									<img [src]="mcp.brand.logo" alt="{{ mcp.brand.name }} logo"
+									     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+									<div>{{ mcp.brand.name | nameCase }}</div>
+								</div>
+
+								@for (tool of mcp.tools; track tool.callId) {
+									<p class="text-xs font-light truncate {{ toolColor(tool) }}">
+										{{ tool.name }}
+									</p>
+								}
+							</section>
+						} @empty {
+							<p class="text-xs font-light text-text/30">No MCP servers.</p>
+						}
+					</section>
+
+					<section class="flex flex-col gap-2">
+						<p class="text-text/40 font-bold font-mono text-sm">Subagents</p>
+
+						@for (sub of subagents(); track sub.sessionId) {
+							<section class="border-secondary border bg-secondary/20 p-4 py-3 rounded-lg flex flex-col gap-2">
+								<div class="font-black inline-flex items-center gap-2">
+									<img [src]="sub.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg"
+									     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+
+									<div class="min-w-0">
+										<div>{{ sub.name | nameCase }}</div>
+										<div class="text-xs font-light text-text/50 truncate">
+											{{ sub.model | lowercase }}
+										</div>
+									</div>
+								</div>
+
+								<div class="flex items-center gap-3 text-xs font-light text-text/50">
+									<span class="inline-flex items-center gap-1">
+										<hugeicons-icon [icon]="Coins01Icon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+										{{ (sub.cost ?? 0) | compactNumber }}
+									</span>
+									<span class="inline-flex items-center gap-1">
+										<hugeicons-icon [icon]="CpuIcon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+										{{ (sub.tokens ?? 0) | compactNumber }}
+									</span>
+								</div>
+							</section>
+						} @empty {
+							<p class="text-xs font-light text-text/30">No subagents.</p>
+						}
+					</section>
+				</div>
+			</div>
+		</div>
+	</div>
+}

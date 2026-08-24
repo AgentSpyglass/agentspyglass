@@ -1,13 +1,13 @@
 import {ChangeDetectionStrategy, Component, computed, inject} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
-import {NodeData} from "../../../model/definitions";
+import {NodeData, USER_AGENT} from "../../../model/definitions";
 import {LowerCasePipe} from "@angular/common";
-import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
+import {AgentModalService} from "../../../service/agent-modal.service";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
-import {Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
+import {Coins01Icon, CpuIcon, FullScreenIcon} from "@hugeicons/core-free-icons";
 import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
@@ -18,7 +18,6 @@ import {DefaultImageDirective} from "../../../directive/default-image.directive"
     imports: [
         LowerCasePipe,
         HandleComponent,
-        TextContainerComponent,
         NameCasePipe,
         CompactNumberPipe,
         HugeiconsIconComponent,
@@ -27,13 +26,23 @@ import {DefaultImageDirective} from "../../../directive/default-image.directive"
 })
 export class AgentNode extends CustomNodeComponent<NodeData> {
     private entityStore = inject(EntityStoreService);
+    private modal = inject(AgentModalService);
 
     agent = computed(() => {
         const data = this.data();
         if (!data?.entityId) return undefined;
+        if (data.entityId === USER_AGENT.sessionId) return USER_AGENT;
         return this.entityStore.getAgent(data.entityId);
     });
+    isSubagent = computed(() => this.agent()?.role === 'subagent');
+    isUser = computed(() => this.agent()?.sessionId === USER_AGENT.sessionId);
+
+    openModal(): void {
+        const id = this.data()?.entityId;
+        if (id && !this.isUser()) this.modal.open(id);
+    }
 
     protected readonly Coins01Icon = Coins01Icon;
     protected readonly CpuIcon = CpuIcon;
+    protected readonly FullScreenIcon = FullScreenIcon;
 }

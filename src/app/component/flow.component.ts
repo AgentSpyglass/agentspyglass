@@ -4,9 +4,10 @@ import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {InfoNode} from "./node/info/info.node";
 import {AgentNode} from "./node/agent/agent.node";
-import {MessageNode} from "./node/message/message.node";
 import {McpNode} from "./node/mcp/mcp.node";
 import {EntityStoreService} from "../service/entity-store.service";
+
+type Point = { x: number; y: number };
 
 @Component({
     selector: "flow",
@@ -37,10 +38,20 @@ export class FlowComponent {
     /** Reactive viewport state — safe to read before vflow initializes. */
     readonly currentViewport = computed(() => this.vflow().viewport() ?? {zoom: 1, x: 0, y: 0});
 
+    /**
+     * Agent-centered relational layout.
+     *
+     *       User
+     *        |
+     * MCPs <-> Agent <-> Subagents
+     *
+     * Each primary agent starts a cluster in the center column; whole clusters stack vertically.
+     */
     private readonly LAYOUT = {
-        agent: { baseX: 600, baseY: 100, spacingY: 250 },
-        mcp: { baseX: 150, baseY: 150, spacingY: 200 },
-        message: { offsetX: 350, offsetY: 0, fallbackX: 950, fallbackY: 100 },
+        cluster: { centerX: 650, baseY: 150, spacingY: 750 },
+        user: { offsetY: -230 },
+        mcp: { offsetX: -400, spacingY: 240 },
+        subagent: { offsetX: 400, spacingY: 240 },
         info: { x: 400, y: 400 }
     };
 
@@ -61,69 +72,69 @@ export class FlowComponent {
     }
 
     public addAgent(agent: Agent) {
-        this.addNode('agent', agent.sessionId, {
-            type: 'agent',
-            entityId: agent.sessionId,
-        });
-
         if (agent.targetSessionId) {
             const parentId = agent.targetSessionId;
-            const childId = agent.sessionId;
-            const messageId = `spawn-${parentId}-${childId}`;
-            this.addNode('message', messageId, {
-                type: 'message',
-                entityId: messageId,
-                senderId: parentId,
-                receiverId: childId,
-            }, parentId);
-            this.addEdge(parentId, messageId);
-            this.addEdge(messageId, childId);
-        }
-    }
+            const parentPoint = this.nodes().find(n => n.id === parentId)?.point();
+            const index = this.subagentCount(parentId);
+            const point = parentPoint
+                ? this.placeRightOf(parentPoint, index)
+                : this.placeRightOf({x: this.LAYOUT.cluster.centerX, y: this.LAYOUT.cluster.baseY}, index);
 
-    public addMessage(sessionId: string, content: string, role: 'user' | 'assistant', parentID?: string) {
-        const primary = this.entityStore.findPrimaryAgent();
-        const nodeId = `message-${sessionId}`;
-        this.addNode('message', nodeId, {
-            type: 'message',
-            entityId: nodeId,
-            content,
-            senderId: role === 'user' ? 'user' : (parentID ?? primary?.sessionId),
-            receiverId: sessionId,
-        }, sessionId);
-        this.addEdge(nodeId, sessionId);
-        if (primary) {
-            this.addEdge(nodeId, primary.sessionId);
+            this.addNode('agent', agent.sessionId, {type: 'agent', entityId: agent.sessionId}, point);
+            this.addEdge(parentId, agent.sessionId, 's-right', 't-left');
+            return;
+        }
+
+        this.addNode('agent', agent.sessionId, {type: 'agent', entityId: agent.sessionId}, this.placeRootAgent());
+
+        const agentPoint = this.nodes().find(n => n.id === agent.sessionId)?.point();
+        if (agentPoint) {
+            const userId = `user-${agent.sessionId}`;
+            this.addNode('agent', userId, {type: 'agent', entityId: 'user'}, this.placeAbove(agentPoint));
+            this.addEdge(userId, agent.sessionId, 's-bottom', 't-top');
         }
     }
 
     public addMcp(from: string, mcp: MCP) {
-        this.addNode('mcp', mcp.name, {
-            type: 'mcp',
-            entityId: mcp.name,
-        });
-        this.addEdge(from, mcp.name);
+        const ownerPoint = this.nodes().find(n => n.id === from)?.point();
+        const index = this.entityStore.getMcpNamesFor(from).length;
+        this.entityStore.associateMcp(from, mcp.name);
+
+        const point = ownerPoint
+            ? this.placeLeftOf(ownerPoint, index)
+            : this.placeLeftOf({x: this.LAYOUT.cluster.centerX, y: this.LAYOUT.cluster.baseY}, index);
+
+        this.addNode('mcp', mcp.name, {type: 'mcp', entityId: mcp.name}, point);
+        this.addEdge(from, mcp.name, 's-left', 't-right');
     }
 
-    private addNode(type: NodeType, nodeId: string, data: NodeData, senderId?: string) {
+    private addNode(type: NodeType, nodeId: string, data: NodeData, point: Point) {
         if (this.nodes().find(n => n.id === nodeId)) return;
 
         const node: ComponentNode = {
             id: nodeId,
             type: this.getType(type),
-            point: signal(this.calculatePosition(type, senderId)),
+            point: signal(point),
             data: signal(data)
         };
         this.nodes.set([...this.nodes(), node]);
     }
 
-    private addEdge(source: string, target: string) {
+    /**
+     * Handle ids refer to `<handle id="...">` declarations inside the node templates
+     * (agent.node.html / mcp.node.html). ngx-vflow binds edges to the first handle of a
+     * matching type when no id is given, so ids are required now that the agent node has
+     * multiple source/target handles.
+     */
+    private addEdge(source: string, target: string, sourceHandle: string, targetHandle: string) {
         const exists = this.edges().find(e => e.source === source && e.target === target);
         if (!exists) {
             this.edges.set([...this.edges(), {
                 id: `${source} -> ${target}`,
                 source,
-                target
+                target,
+                sourceHandle,
+                targetHandle
             }]);
         }
     }
@@ -134,40 +145,39 @@ export class FlowComponent {
                 return AgentNode;
             case 'mcp':
                 return McpNode;
-            case 'message':
-                return MessageNode;
         }
 
         return InfoNode;
     }
 
-    private calculatePosition(type: NodeType, senderId?: string) {
-        const nodes = this.nodes();
+    private rootCount(): number {
+        return this.nodes().filter(n => {
+            if (n.type !== AgentNode) return false;
+            const agent = this.entityStore.getAgent(n.id);
+            return !!agent && !agent.targetSessionId;
+        }).length;
+    }
 
-        switch (type) {
-            case 'agent': {
-                const count = nodes.filter(n => n.type === AgentNode).length;
-                return {
-                    x: this.LAYOUT.agent.baseX,
-                    y: this.LAYOUT.agent.baseY + (count * this.LAYOUT.agent.spacingY)
-                };
-            }
-            case 'mcp': {
-                const count = nodes.filter(n => n.type === McpNode).length;
-                return {
-                    x: this.LAYOUT.mcp.baseX,
-                    y: this.LAYOUT.mcp.baseY + (count * this.LAYOUT.mcp.spacingY)
-                };
-            }
-            case 'message': {
-                const sender = senderId ? nodes.find(n => n.id === senderId) : null;
-                const senderPos = sender ? sender.point() : null;
-                const baseX = senderPos ? senderPos.x + this.LAYOUT.message.offsetX : this.LAYOUT.message.fallbackX;
-                const baseY = senderPos ? senderPos.y + this.LAYOUT.message.offsetY : this.LAYOUT.message.fallbackY;
-                return { x: baseX, y: baseY };
-            }
-            default:
-                return this.LAYOUT.info;
-        }
+    private subagentCount(parentId: string): number {
+        return this.nodes().filter(n => n.type === AgentNode && this.entityStore.getAgent(n.id)?.targetSessionId === parentId).length;
+    }
+
+    private placeRootAgent(): Point {
+        return {
+            x: this.LAYOUT.cluster.centerX,
+            y: this.LAYOUT.cluster.baseY + this.rootCount() * this.LAYOUT.cluster.spacingY
+        };
+    }
+
+    private placeAbove(point: Point): Point {
+        return {x: point.x, y: point.y + this.LAYOUT.user.offsetY};
+    }
+
+    private placeLeftOf(point: Point, index: number): Point {
+        return {x: point.x + this.LAYOUT.mcp.offsetX, y: point.y + index * this.LAYOUT.mcp.spacingY};
+    }
+
+    private placeRightOf(point: Point, index: number): Point {
+        return {x: point.x + this.LAYOUT.subagent.offsetX, y: point.y + index * this.LAYOUT.subagent.spacingY};
     }
 }

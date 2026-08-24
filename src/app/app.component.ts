@@ -7,6 +7,7 @@ import {BrandService} from "./service/brand.service";
 import {Todo, Tool} from "@agentspyglass/core";
 import {SessionInfoComponent} from "./component/session-info/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
+import {AgentModalComponent} from "./component/agent-modal/agent-modal.component";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {StatusData} from "./model/definitions";
 import {DefaultImageDirective} from "./directive/default-image.directive";
@@ -17,6 +18,7 @@ import {DefaultImageDirective} from "./directive/default-image.directive";
         HugeiconsIconComponent,
         FlowComponent,
         SessionInfoComponent,
+        AgentModalComponent,
         DefaultImageDirective
     ],
     templateUrl: "./app.component.html",
@@ -115,10 +117,6 @@ export class AppComponent implements AfterViewInit {
 
             this.entityStore.upsertMcp(mcp);
             this.flow.addMcp(toolEvent.sessionId, mcp);
-        });
-
-        this.bridge.messageEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(messageEvent => {
-            this.flow.addMessage(messageEvent.sessionId, messageEvent.content, messageEvent.role, messageEvent.parentID);
         });
 
         this.bridge.statusEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(statusEvent => {

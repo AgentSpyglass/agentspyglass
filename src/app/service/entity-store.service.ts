@@ -5,6 +5,8 @@ import {Agent, MCP} from "@agentspyglass/core";
 export class EntityStoreService {
     private readonly agents = signal<Map<string, Agent>>(new Map());
     private readonly mcps = signal<Map<string, MCP>>(new Map());
+    /** Session → MCP server names relation, recorded when an MCP first acts within a session. */
+    private readonly mcpsBySession = signal<Map<string, Set<string>>>(new Map());
 
     readonly agentList = computed(() => Array.from(this.agents().values()));
 
@@ -36,6 +38,21 @@ export class EntityStoreService {
             next.set(mcp.name, mcp);
             return next;
         });
+    }
+
+    /** Idempotently links an MCP server to a session. */
+    associateMcp(sessionId: string, mcpName: string): void {
+        this.mcpsBySession.update(map => {
+            const existing = map.get(sessionId);
+            if (existing?.has(mcpName)) return map;
+            const next = new Map(map);
+            next.set(sessionId, new Set(existing).add(mcpName));
+            return next;
+        });
+    }
+
+    getMcpNamesFor(sessionId: string): string[] {
+        return Array.from(this.mcpsBySession().get(sessionId) ?? []);
     }
 
     findPrimaryAgent(): Agent | undefined {

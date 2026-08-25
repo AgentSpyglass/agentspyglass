@@ -1,6 +1,10 @@
 import {computed, Injectable, signal} from "@angular/core";
 import {Agent, MCP} from "@agentspyglass/core";
 
+/** Macro-view identity: sessions sharing brand+name+model collapse into one flow node. */
+const identityKey = (agent: Pick<Agent, 'brand' | 'name' | 'model'>): string =>
+    `${agent.brand?.name ?? ''}|${agent.name}|${agent.model}`;
+
 @Injectable({providedIn: 'root'})
 export class EntityStoreService {
     private readonly agents = signal<Map<string, Agent>>(new Map());
@@ -10,12 +14,35 @@ export class EntityStoreService {
 
     readonly agentList = computed(() => Array.from(this.agents().values()));
 
+    /** Group key → member agents, insertion-ordered (first session anchors node edges). */
+    private readonly agentGroups = computed(() => {
+        const groups = new Map<string, Agent[]>();
+        for (const agent of this.agentList()) {
+            const key = identityKey(agent);
+            const bucket = groups.get(key);
+            if (bucket) bucket.push(agent);
+            else groups.set(key, [agent]);
+        }
+        return groups;
+    });
+
     getAgent(sessionId: string): Agent | undefined {
         return this.agents().get(sessionId);
     }
 
     getMcp(name: string): MCP | undefined {
         return this.mcps().get(name);
+    }
+
+    /** Identity-group key of a session's agent; undefined when the session is unknown. */
+    resolveGroupKey(sessionId: string): string | undefined {
+        const agent = this.agents().get(sessionId);
+        return agent ? identityKey(agent) : undefined;
+    }
+
+    /** All sessions collapsed under an identity group, in arrival order. */
+    getSessions(groupKey: string): Agent[] {
+        return this.agentGroups().get(groupKey) ?? [];
     }
 
     upsertAgent(agent: Agent): void {

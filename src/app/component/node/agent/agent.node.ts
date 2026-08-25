@@ -1,7 +1,8 @@
 import {ChangeDetectionStrategy, Component, computed, inject} from '@angular/core';
 import {CustomNodeComponent, HandleComponent} from 'ngx-vflow';
+import {Agent} from '@agentspyglass/core';
 import {NodeData, USER_AGENT} from "../../../model/definitions";
-import {LowerCasePipe} from "@angular/common";
+import {LowerCasePipe, SlicePipe} from "@angular/common";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
@@ -17,6 +18,7 @@ import {DefaultImageDirective} from "../../../directive/default-image.directive"
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         LowerCasePipe,
+        SlicePipe,
         HandleComponent,
         NameCasePipe,
         CompactNumberPipe,
@@ -28,19 +30,37 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
     private entityStore = inject(EntityStoreService);
     private modal = inject(AgentModalService);
 
-    agent = computed(() => {
+    /**
+     * Sessions collapsed into this node. Macro nodes carry an identity-group id
+     * (EntityStoreService.resolveGroupKey); user and modal micro-graph nodes carry
+     * a bare session id. Store reads keep the list reactive as sessions join the group.
+     */
+    readonly sessions = computed<Agent[]>(() => {
         const data = this.data();
-        if (!data?.entityId) return undefined;
-        if (data.entityId === USER_AGENT.sessionId) return USER_AGENT;
-        return this.entityStore.getAgent(data.entityId);
+        const id = data?.entityId;
+        if (!id) return [];
+        if (id === USER_AGENT.sessionId) return [USER_AGENT];
+        if (data.inModal === true) {
+            const agent = this.entityStore.getAgent(id);
+            return agent ? [agent] : [];
+        }
+        return this.entityStore.getSessions(id);
     });
+
+    /** Header representative: identity fields are shared by every member of the group. */
+    agent = computed(() => this.sessions()[0]);
     isSubagent = computed(() => this.agent()?.role === 'subagent');
     isUser = computed(() => this.agent()?.sessionId === USER_AGENT.sessionId);
     inModal = computed(() => this.data()?.inModal === true);
 
-    openModal(): void {
-        const id = this.data()?.entityId;
-        if (id && !this.isUser()) this.modal.open(id);
+    readonly totalCost = computed(() => this.sessions().reduce((sum, s) => sum + (s.cost ?? 0), 0));
+    readonly totalTokens = computed(() => this.sessions().reduce((sum, s) => sum + (s.tokens ?? 0), 0));
+
+    /** Header button opens the first session; session-row buttons pass their own id. */
+    openModal(sessionId?: string): void {
+        if (this.isUser() || this.inModal()) return;
+        const target = sessionId ?? this.sessions()[0]?.sessionId;
+        if (target) this.modal.open(target);
     }
 
     protected readonly Coins01Icon = Coins01Icon;

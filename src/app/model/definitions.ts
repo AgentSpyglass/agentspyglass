@@ -4,6 +4,7 @@ export type NodeType = 'agent' | 'mcp' | 'info';
 
 export type NodeData = {
     type: NodeType;
+    /** Macro flow: identity-group key (EntityStoreService.resolveGroupKey). User/modal micro-graph: session id. */
     entityId?: string;
     content?: string;
     /** UI-only: node rendered inside agent-modal micro-graph → hides fullscreen button. */

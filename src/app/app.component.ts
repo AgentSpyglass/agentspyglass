@@ -79,6 +79,7 @@ export class AppComponent implements AfterViewInit {
                     agentEvent.model,
                     agentEvent.provider
                 ),
+                title: agentEvent.title,
                 cost: agentEvent.cost,
                 tokens: agentEvent.tokens,
                 targetSessionId: agentEvent.targetSessionId,

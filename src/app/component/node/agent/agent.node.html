@@ -16,7 +16,7 @@
 				</div>
 			</section>
 
-			@if (!isUser() && !inModal()) {
+			@if (!isUser() && !inModal() && sessions().length === 1) {
 				<button class="flex items-center justify-center w-8 h-8 rounded-lg border-1 border-tertiary cursor-pointer hover:bg-accent/30 hover:text-text"
 				        (click)="openModal()"
 				        aria-label="Open agent details"
@@ -34,13 +34,36 @@
 		<div class="flex items-center gap-3 text-xs font-light text-text/50">
 			<span class="inline-flex items-center gap-1">
 				<hugeicons-icon [icon]="Coins01Icon" [size]="12" color="currentColor" [strokeWidth]="2"/>
-				{{ (a.cost ?? 0) | compactNumber }}
+				{{ totalCost() | compactNumber }}
 			</span>
 			<span class="inline-flex items-center gap-1">
 				<hugeicons-icon [icon]="CpuIcon" [size]="12" color="currentColor" [strokeWidth]="2"/>
-				{{ (a.tokens ?? 0) | compactNumber }}
+				{{ totalTokens() | compactNumber }}
 			</span>
 		</div>
+
+		@if (sessions().length > 1) {
+			<div class="flex flex-col gap-1 border-t border-accent/40 pt-3 text-xs font-light text-text/70">
+				@for (s of sessions(); track s.sessionId) {
+					<div class="flex items-center justify-between gap-2 min-w-0">
+						<span class="truncate" [title]="s.title ?? s.sessionId">
+							{{ s.title ?? (s.sessionId | slice:0:8) }}
+						</span>
+						<button class="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg border-1 border-tertiary cursor-pointer hover:bg-accent/30 hover:text-text"
+						        (click)="openModal(s.sessionId)"
+						        aria-label="Open session details"
+						        title="Open session details">
+							<hugeicons-icon
+									[icon]="ArrowExpandDiagonal01Icon"
+									[size]="16"
+									color="currentColor"
+									[strokeWidth]="2"
+							/>
+						</button>
+					</div>
+				}
+			</div>
+		}
 	} @else {
 		<div class="inline-flex items-center gap-2">
 			<img src="assets/not_found.svg" alt="Unknown agent" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">

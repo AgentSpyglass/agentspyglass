@@ -1,7 +1,6 @@
 import {computed, Injectable, signal} from "@angular/core";
 import {Agent, MCP} from "@agentspyglass/core";
 
-/** Macro-view identity: sessions sharing brand+name+model collapse into one flow node. */
 const identityKey = (agent: Pick<Agent, 'brand' | 'name' | 'model'>): string =>
     `${agent.brand?.name ?? ''}|${agent.name}|${agent.model}`;
 
@@ -9,12 +8,10 @@ const identityKey = (agent: Pick<Agent, 'brand' | 'name' | 'model'>): string =>
 export class EntityStoreService {
     private readonly agents = signal<Map<string, Agent>>(new Map());
     private readonly mcps = signal<Map<string, MCP>>(new Map());
-    /** Session → MCP server names relation, recorded when an MCP first acts within a session. */
     private readonly mcpsBySession = signal<Map<string, Set<string>>>(new Map());
 
     readonly agentList = computed(() => Array.from(this.agents().values()));
 
-    /** Group key → member agents, insertion-ordered (first session anchors node edges). */
     private readonly agentGroups = computed(() => {
         const groups = new Map<string, Agent[]>();
         for (const agent of this.agentList()) {
@@ -34,20 +31,17 @@ export class EntityStoreService {
         return this.mcps().get(name);
     }
 
-    /** Identity-group key of a session's agent; undefined when the session is unknown. */
     resolveGroupKey(sessionId: string): string | undefined {
         const agent = this.agents().get(sessionId);
         return agent ? identityKey(agent) : undefined;
     }
 
-    /** All sessions collapsed under an identity group, in arrival order. */
     getSessions(groupKey: string): Agent[] {
         return this.agentGroups().get(groupKey) ?? [];
     }
 
     upsertAgent(agent: Agent): void {
         this.agents.update(map => {
-            // Event cost/tokens are incremental per step; accumulate onto existing totals.
             const previous = map.get(agent.sessionId);
             const next = new Map(map);
             next.set(agent.sessionId, {
@@ -67,7 +61,6 @@ export class EntityStoreService {
         });
     }
 
-    /** Idempotently links an MCP server to a session. */
     associateMcp(sessionId: string, mcpName: string): void {
         this.mcpsBySession.update(map => {
             const existing = map.get(sessionId);

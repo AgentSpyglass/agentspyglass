@@ -1,12 +1,3 @@
-/**
- * Pure, deterministic layered graph layout for ngx-vflow graphs.
- *
- * Nodes are arranged as a forest: roots have no incoming edge, traversal
- * assigns depths, and siblings stack along the cross axis centred under
- * their parent's span. Deeper levels recurse naturally.
- *
- * Determinism: results depend only on node/edge insertion order.
- */
 export interface Positioned {
     readonly x: number;
     readonly y: number;
@@ -21,38 +12,31 @@ export interface LayoutEdgeInput {
     readonly target: string;
 }
 
-export interface GraphLayoutOptions {
-    /** Direction of increasing depth: LR grows rightwards, TB downwards. */
-    readonly orientation: 'LR' | 'TB';
-    /** Distance between depth layers along the main axis. */
-    readonly layerGap: number;
-    /** Distance between neighbours along the cross axis. */
-    readonly siblingGap: number;
-    /** Layout origin (position of the first root). */
+export type MacroNodeKind = 'anchor' | 'agent' | 'mcp';
+
+export interface MacroLayoutOptions {
     readonly origin: Positioned;
-    /**
-     * Nodes placed one layer on the OPPOSITE side of their parent (depth −1),
-     * e.g. MCP servers left of their agent in LR mode.
-     */
-    readonly inverseSideIds?: ReadonlySet<string>;
-    /**
-     * Nodes excluded from layering and pinned beside their single child —
-     * LR: directly above it (e.g. the synthetic user node). Ignored in TB.
-     */
-    readonly pinnedIds?: ReadonlySet<string>;
-    /** Cross-axis distance between a pinned node and its child. */
-    readonly pinOffset?: number;
+    readonly anchorGap: number;
+    readonly mcpGap: number;
+    readonly mcpStackGap: number;
+    readonly subGap: number;
+    readonly groupGap: number;
 }
 
-export function layoutGraph(
+export interface MicroLayoutOptions {
+    readonly origin: Positioned;
+    readonly layerGap: number;
+    readonly rowGap: number;
+    readonly colGap: number;
+    readonly maxPerRow: number;
+}
+
+export function layoutMacroGraph(
     nodes: readonly LayoutNodeInput[],
     edges: readonly LayoutEdgeInput[],
-    options: GraphLayoutOptions,
+    kinds: ReadonlyMap<string, MacroNodeKind>,
+    options: MacroLayoutOptions,
 ): Map<string, Positioned> {
-    const positions = new Map<string, Positioned>();
-    const {orientation, layerGap, siblingGap, origin} = options;
-    const pinOffset = options.pinOffset ?? 230;
-
     const ids: string[] = [];
     const idSet = new Set<string>();
     for (const node of nodes) {
@@ -61,126 +45,140 @@ export function layoutGraph(
         ids.push(node.id);
     }
 
-    const inverse = new Set([...(options.inverseSideIds ?? [])].filter(id => idSet.has(id)));
-    // Pinning is defined for LR only; elsewhere pinned nodes take part normally.
-    const pinned = orientation === 'LR'
-        ? new Set([...(options.pinnedIds ?? [])].filter(id => idSet.has(id)))
-        : new Set<string>();
+    const kindOf = (id: string): MacroNodeKind => kinds.get(id) ?? 'agent';
 
-    // Forest assembly: edges touching pinned nodes are decorative, and the
-    // first incoming edge wins, so shared nodes (one MCP serving many
-    // sessions) get a single deterministic parent.
-    const children = new Map<string, string[]>();
-    const hasParent = new Set<string>();
+    const anchorOf = new Map<string, string>();
+    const parentOf = new Map<string, string>();
+    const mcpsOf = new Map<string, string[]>();
+
     for (const edge of edges) {
         if (edge.source === edge.target) continue;
         if (!idSet.has(edge.source) || !idSet.has(edge.target)) continue;
-        if (pinned.has(edge.source) || pinned.has(edge.target)) continue;
-        if (hasParent.has(edge.target)) continue;
-        hasParent.add(edge.target);
-        const siblings = children.get(edge.source);
-        if (siblings) siblings.push(edge.target);
-        else children.set(edge.source, [edge.target]);
-    }
 
-    // Depth assignment: roots have no parent; inverse-side children step back.
-    const depth = new Map<string, number>();
-    const roots = ids.filter(id => !pinned.has(id) && !hasParent.has(id));
-    const queue = [...roots];
-    for (const root of roots) depth.set(root, 0);
-    for (let i = 0; i < queue.length; i++) {
-        const parent = queue[i];
-        const parentDepth = depth.get(parent)!;
-        for (const child of children.get(parent) ?? []) {
-            if (depth.has(child)) continue;
-            depth.set(child, parentDepth + (inverse.has(child) ? -1 : 1));
-            queue.push(child);
+        if (kindOf(edge.source) === 'anchor') {
+            if (!anchorOf.has(edge.target)) anchorOf.set(edge.target, edge.source);
+            continue;
         }
+
+        if (kindOf(edge.target) === 'mcp') {
+            const bucket = mcpsOf.get(edge.source);
+            if (bucket) {
+                if (!bucket.includes(edge.target)) bucket.push(edge.target);
+            } else {
+                mcpsOf.set(edge.source, [edge.target]);
+            }
+            continue;
+        }
+
+        if (kindOf(edge.source) !== 'agent' || kindOf(edge.target) !== 'agent') continue;
+        if (!parentOf.has(edge.target)) parentOf.set(edge.target, edge.source);
     }
 
-    // Tidy stacking: a leaf occupies one sibling slot; a parent spans its children.
-    const span = new Map<string, number>();
-    const measuring = new Set<string>();
-    const measure = (id: string): number => {
-        const known = span.get(id);
-        if (known !== undefined) return known;
-        if (measuring.has(id)) return siblingGap; // defensive: break hypothetical cycles
-        measuring.add(id);
-        const kids = children.get(id) ?? [];
-        let size = siblingGap;
+    for (const group of anchorOf.keys()) parentOf.delete(group);
+
+    const childrenOf = new Map<string, string[]>();
+    for (const [child, parent] of parentOf) {
+        const bucket = childrenOf.get(parent);
+        if (bucket) bucket.push(child);
+        else childrenOf.set(parent, [child]);
+    }
+
+    const clusterRoots = ids.filter(id =>
+        kindOf(id) === 'agent'
+        && !parentOf.has(id)
+        && (anchorOf.has(id) || childrenOf.has(id) || mcpsOf.has(id))
+    );
+
+    const topExtentOf = new Map<string, number>();
+    const heightOf = new Map<string, number>();
+
+    const measure = (id: string): void => {
+        const kids = childrenOf.get(id) ?? [];
+        for (const kid of kids) measure(kid);
+
+        let below = 0;
         if (kids.length > 0) {
-            let total = 0;
-            for (const kid of kids) total += measure(kid);
-            size = Math.max(total + siblingGap * (kids.length - 1), siblingGap);
+            below = options.subGap;
+            for (let i = 0; i < kids.length; i++) {
+                below += heightOf.get(kids[i])!;
+                if (i < kids.length - 1) below += options.groupGap;
+            }
         }
-        measuring.delete(id);
-        span.set(id, size);
-        return size;
+
+        const topExtent = anchorOf.has(id) ? options.anchorGap : 0;
+        topExtentOf.set(id, topExtent);
+        heightOf.set(id, topExtent + below);
     };
 
-    const cross = new Map<string, number>();
-    const place = (id: string, start: number): void => {
-        const kids = children.get(id) ?? [];
-        if (kids.length === 0) {
-            cross.set(id, start + span.get(id)! / 2);
-            return;
+    const positions = new Map<string, Positioned>();
+
+    const place = (id: string, x: number, top: number): void => {
+        const y = top + topExtentOf.get(id)!;
+        positions.set(id, {x, y});
+
+        const anchor = anchorOf.get(id);
+        if (anchor !== undefined && !positions.has(anchor)) {
+            positions.set(anchor, {x, y: y - options.anchorGap});
         }
-        let cursor = start;
+
+        const mcps = mcpsOf.get(id) ?? [];
+        const left = mcps.filter((_, i) => i % 2 === 0);
+        const right = mcps.filter((_, i) => i % 2 === 1);
+        left.forEach((mcp, i) => {
+            if (positions.has(mcp)) return;
+            positions.set(mcp, {x: x - options.mcpGap, y: y + (i - (left.length - 1) / 2) * options.mcpStackGap});
+        });
+        right.forEach((mcp, i) => {
+            if (positions.has(mcp)) return;
+            positions.set(mcp, {x: x + options.mcpGap, y: y + (i - (right.length - 1) / 2) * options.mcpStackGap});
+        });
+
+        const kids = childrenOf.get(id) ?? [];
+        let cursor = y + options.subGap;
         for (const kid of kids) {
-            place(kid, cursor);
-            cursor += span.get(kid)! + siblingGap;
+            place(kid, x, cursor);
+            cursor += heightOf.get(kid)! + options.groupGap;
         }
-        const first = kids[0];
-        const last = kids[kids.length - 1];
-        cross.set(id, (cross.get(first)! + cross.get(last)!) / 2);
     };
 
-    const originMain = orientation === 'LR' ? origin.x : origin.y;
-    const originCross = orientation === 'LR' ? origin.y : origin.x;
-
-    let crossCursor = originCross;
-    for (const root of roots) {
+    let cursor = options.origin.y;
+    for (const root of clusterRoots) {
         measure(root);
-        place(root, crossCursor);
-        crossCursor += span.get(root)! + siblingGap;
-    }
-
-    const mainAxis = new Map<string, number>();
-    let maxDepth = 0;
-    for (const [id, d] of depth) {
-        if (d > maxDepth) maxDepth = d;
-        mainAxis.set(id, originMain + d * layerGap);
-    }
-
-    // Pinned nodes hug their first placed child (LR: directly above it).
-    for (const id of ids) {
-        if (!pinned.has(id)) continue;
-        const child = edges.find(e =>
-            e.source === id
-            && idSet.has(e.target)
-            && mainAxis.has(e.target)
-        )?.target;
-        if (child === undefined) continue;
-        cross.set(id, cross.get(child)! - pinOffset);
-        mainAxis.set(id, mainAxis.get(child)!);
-    }
-
-    // Orphan fallback: nodes unreachable from any root (including childless
-    // pins and edge-less nodes such as info nodes) keep a sane slot past the
-    // laid-out content instead of collapsing onto the origin.
-    const orphanMain = originMain + (maxDepth + 1) * layerGap;
-    for (const id of ids) {
-        if (mainAxis.has(id)) continue;
-        cross.set(id, crossCursor);
-        mainAxis.set(id, orphanMain);
-        crossCursor += siblingGap;
+        place(root, options.origin.x, cursor);
+        cursor += heightOf.get(root)! + options.groupGap;
     }
 
     for (const id of ids) {
-        const main = mainAxis.get(id);
-        const crossPosition = cross.get(id);
-        if (main === undefined || crossPosition === undefined) continue;
-        positions.set(id, orientation === 'LR' ? {x: main, y: crossPosition} : {x: crossPosition, y: main});
+        if (positions.has(id)) continue;
+        positions.set(id, {x: options.origin.x, y: cursor});
+        cursor += options.groupGap;
     }
+
+    return positions;
+}
+
+export function layoutMicroGraph(
+    nodes: readonly LayoutNodeInput[],
+    options: MicroLayoutOptions,
+): Map<string, Positioned> {
+    const positions = new Map<string, Positioned>();
+    if (nodes.length === 0) return positions;
+
+    positions.set(nodes[0].id, {x: options.origin.x, y: options.origin.y});
+
+    const focus = nodes[1];
+    if (!focus) return positions;
+
+    positions.set(focus.id, {x: options.origin.x, y: options.origin.y + options.layerGap});
+
+    const children = nodes.slice(2);
+    for (let row = 0; row * options.maxPerRow < children.length; row++) {
+        const members = children.slice(row * options.maxPerRow, (row + 1) * options.maxPerRow);
+        members.forEach((child, i) => positions.set(child.id, {
+            x: options.origin.x + (i - (members.length - 1) / 2) * options.colGap,
+            y: options.origin.y + options.layerGap + (row + 1) * options.rowGap,
+        }));
+    }
+
     return positions;
 }

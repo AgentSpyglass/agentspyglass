@@ -2,26 +2,28 @@ import {ChangeDetectionStrategy, Component, computed, effect, inject, signal, un
 import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
-import {McpNode} from "./node/mcp/mcp.node";
 import {resolveNodeComponent} from "./node/node-types";
 import {EntityStoreService} from "../service/entity-store.service";
-import {layoutGraph} from "../layout/graph-layout";
+import {layoutMacroGraph, MacroLayoutOptions, MacroNodeKind} from "../layout/graph-layout";
 
 type Point = { x: number; y: number };
 
-/** Edge waiting for its parent identity group to appear; keyed by the raw parent sessionId. */
 type DeferredEdge = {
-    /** Child endpoint node id (group key or MCP name). */
     target: string;
-    sourceHandle: string;
-    targetHandle: string;
 };
 
-/** Provisional slot until the relayout effect assigns final positions. */
 const PROVISIONAL_POINT: Point = {x: 650, y: 150};
 
-/** Id prefix of the synthetic user node hanging above each primary agent. */
 const USER_NODE_PREFIX = "user-";
+
+const MACRO_LAYOUT: MacroLayoutOptions = {
+    origin: {x: 650, y: 150},
+    anchorGap: 160,
+    mcpGap: 400,
+    mcpStackGap: 180,
+    subGap: 400,
+    groupGap: 180,
+};
 
 @Component({
     selector: "flow",
@@ -31,8 +33,8 @@ const USER_NODE_PREFIX = "user-";
     template: `
 	    <vflow
                 #vflow
-			    view="auto"
-                [nodes]="nodes()"
+                view="auto"
+			    [nodes]="nodes()"
                 [edges]="edges()"
 			    [minZoom]="0.1"
 			    [maxZoom]="1.5"
@@ -49,50 +51,24 @@ export class FlowComponent {
 
     private entityStore = inject(EntityStoreService);
 
-    /** Raw parent sessionId → edges whose parent identity group did not exist yet. */
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
 
-    /** Reactive viewport state — safe to read before vflow initializes. */
     readonly currentViewport = computed(() => this.vflow().viewport() ?? {zoom: 1, x: 0, y: 0});
 
     constructor() {
-        /**
-         * Reactive relayout over the whole graph (see layoutGraph):
-         *
-         *   User
-         *    |
-         * MCPs <- Agent -> Subagents   (clusters stack vertically)
-         *
-         * Every nodes()/edges() mutation re-runs the layered layout and glides
-         * existing points to their new spot. Points are read/written inside
-         * untracked() so this effect reacts to graph topology only — never to
-         * its own position writes (loop prevention).
-         */
         effect(() => {
             const nodes = this.nodes();
             const edges = this.edges();
             if (nodes.length === 0) return;
 
-            const pinnedIds = new Set(nodes.filter(n => n.id.startsWith(USER_NODE_PREFIX)).map(n => n.id));
-            const inverseSideIds = new Set(nodes.filter(n => n.type === McpNode).map(n => n.id));
+            const kinds = new Map<string, MacroNodeKind>();
+            for (const node of nodes) {
+                kinds.set(node.id, node.data?.().type === 'mcp'
+                    ? 'mcp'
+                    : node.id.startsWith(USER_NODE_PREFIX) ? 'anchor' : 'agent');
+            }
 
-            /**
-             * Macro spacing. layerGap cannot drop below ~408 without overlap:
-             * MCP cards are fixed w-96 (384px) and sit one layer left of the
-             * agent column, so 400 already leaves only ~16px clearance.
-             * Compaction therefore comes from the cross axis: siblingGap and
-             * pinOffset shrink the vertical sprawl of MCP/subagent stacks and
-             * the pinned user node.
-             */
-            const positions = layoutGraph(nodes, edges, {
-                orientation: 'LR',
-                layerGap: 400,
-                siblingGap: 180,
-                origin: {x: 650, y: 150},
-                pinnedIds,
-                inverseSideIds,
-                pinOffset: 160,
-            });
+            const positions = layoutMacroGraph(nodes, edges, kinds, MACRO_LAYOUT);
 
             untracked(() => {
                 for (const node of nodes) {
@@ -122,17 +98,6 @@ export class FlowComponent {
         return this.vflow().viewport();
     }
 
-    /**
-     * Upserts the identity-group node for the agent's session
-     * (@see EntityStoreService.resolveGroupKey): sessions sharing brand+name+model
-     * render as ONE macro node. `role` is deliberately NOT part of the identity —
-     * a primary and a subagent with identical identity intentionally merge into the
-     * same group (documented behavior), which is why parent edges carry a self-loop guard.
-     *
-     * Edges are created once per group, anchored on the FIRST session:
-     *   user → group ('s-bottom'↔'t-top') for primaries,
-     *   parentGroup → group ('s-right'↔'t-left') for subagents.
-     */
     public addAgent(agent: Agent) {
         const groupKey = this.entityStore.resolveGroupKey(agent.sessionId);
         if (!groupKey) return;
@@ -141,16 +106,12 @@ export class FlowComponent {
 
         if (agent.targetSessionId) {
             const parentKey = this.entityStore.resolveGroupKey(agent.targetSessionId);
-            // Cross-role identity merges can resolve parent == own group: never self-reference.
             if (!parentKey) {
-                // Parent group unknown yet (e.g. WS reconnect replay order) — defer instead of dropping.
-                this.deferEdge(agent.targetSessionId, {target: groupKey, sourceHandle: 's-right', targetHandle: 't-left'});
+                this.deferEdge(agent.targetSessionId, {target: groupKey});
             } else if (parentKey !== groupKey) {
-                this.addEdge(parentKey, groupKey, 's-right', 't-left');
+                this.addEdge(parentKey, groupKey, 's-bottom', 't-top');
             }
         } else {
-            // Primary session: guarantees its group hangs from a user node. Covers both a fresh
-            // group and a primary joining a subagent-created group that has no user anchor yet.
             const anchored = this.edges().some(e => e.target === groupKey && e.source.startsWith(USER_NODE_PREFIX));
             if (!anchored) {
                 const userId = `${USER_NODE_PREFIX}${agent.sessionId}`;
@@ -167,32 +128,45 @@ export class FlowComponent {
         this.addNode('mcp', mcp.name, {type: 'mcp', entityId: mcp.name}, PROVISIONAL_POINT);
         const ownerKey = this.entityStore.resolveGroupKey(from);
         if (ownerKey) {
-            this.addEdge(ownerKey, mcp.name, 's-left', 't-right');
+            const {sourceHandle, targetHandle} = this.mcpHandles(this.countMcpEdges(ownerKey));
+            this.addEdge(ownerKey, mcp.name, sourceHandle, targetHandle);
         } else {
-            // Owner group not resolved yet — defer instead of silently dropping the edge.
-            this.deferEdge(from, {target: mcp.name, sourceHandle: 's-left', targetHandle: 't-right'});
+            this.deferEdge(from, {target: mcp.name});
         }
     }
 
-    /** Buffers an edge under its raw parent sessionId until flushDeferredEdges resolves it. */
+    private isMcpNode(nodeId: string): boolean {
+        return this.nodes().find(n => n.id === nodeId)?.data?.().type === 'mcp';
+    }
+
+    private countMcpEdges(groupKey: string): number {
+        return this.edges().filter(e => e.source === groupKey && this.isMcpNode(e.target)).length;
+    }
+
+    private mcpHandles(index: number): {sourceHandle: string; targetHandle: string} {
+        return index % 2 === 0
+            ? {sourceHandle: 's-left', targetHandle: 't-right'}
+            : {sourceHandle: 's-right', targetHandle: 't-left'};
+    }
+
     private deferEdge(parentSessionId: string, edge: DeferredEdge): void {
         const bucket = this.deferredEdges.get(parentSessionId);
         if (bucket) bucket.push(edge);
         else this.deferredEdges.set(parentSessionId, [edge]);
     }
 
-    /**
-     * Creates buffered edges whose parent session now belongs to `groupKey`.
-     * Runs on every agent upsert — a parent may land in an EXISTING group, so gating
-     * the flush on newly created nodes alone could strand buffered edges forever.
-     */
     private flushDeferredEdges(groupKey: string): void {
-        for (const [parentSessionId, edges] of this.deferredEdges) {
+        for (const [parentSessionId, deferred] of this.deferredEdges) {
             if (this.entityStore.resolveGroupKey(parentSessionId) !== groupKey) continue;
-            this.deferredEdges.delete(parentSessionId); // entries removed once flushed; no unbounded growth
-            for (const edge of edges) {
-                if (edge.target === groupKey) continue; // merged identities: skip self-referencing edge
-                this.addEdge(groupKey, edge.target, edge.sourceHandle, edge.targetHandle);
+            this.deferredEdges.delete(parentSessionId);
+            for (const edge of deferred) {
+                if (edge.target === groupKey) continue;
+                if (this.isMcpNode(edge.target)) {
+                    const {sourceHandle, targetHandle} = this.mcpHandles(this.countMcpEdges(groupKey));
+                    this.addEdge(groupKey, edge.target, sourceHandle, targetHandle);
+                } else {
+                    this.addEdge(groupKey, edge.target, 's-bottom', 't-top');
+                }
             }
         }
     }
@@ -209,12 +183,6 @@ export class FlowComponent {
         this.nodes.set([...this.nodes(), node]);
     }
 
-    /**
-     * Handle ids refer to `<handle id="...">` declarations inside the node templates
-     * (agent.node.html / mcp.node.html). ngx-vflow binds edges to the first handle of a
-     * matching type when no id is given, so ids are required now that the agent node has
-     * multiple source/target handles.
-     */
     private addEdge(source: string, target: string, sourceHandle: string, targetHandle: string) {
         const exists = this.edges().find(e => e.source === source && e.target === target);
         if (!exists) {

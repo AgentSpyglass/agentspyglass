@@ -30,11 +30,6 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
     private entityStore = inject(EntityStoreService);
     private modal = inject(AgentModalService);
 
-    /**
-     * Sessions collapsed into this node. Macro nodes carry an identity-group id
-     * (EntityStoreService.resolveGroupKey); user and modal micro-graph nodes carry
-     * a bare session id. Store reads keep the list reactive as sessions join the group.
-     */
     readonly sessions = computed<Agent[]>(() => {
         const data = this.data();
         const id = data?.entityId;
@@ -47,7 +42,6 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
         return this.entityStore.getSessions(id);
     });
 
-    /** Header representative: identity fields are shared by every member of the group. */
     agent = computed(() => this.sessions()[0]);
     isSubagent = computed(() => this.agent()?.role === 'subagent');
     isUser = computed(() => this.agent()?.sessionId === USER_AGENT.sessionId);
@@ -56,7 +50,6 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
     readonly totalCost = computed(() => this.sessions().reduce((sum, s) => sum + (s.cost ?? 0), 0));
     readonly totalTokens = computed(() => this.sessions().reduce((sum, s) => sum + (s.tokens ?? 0), 0));
 
-    /** Header button opens the first session; session-row buttons pass their own id. */
     openModal(sessionId?: string): void {
         if (this.isUser() || this.inModal()) return;
         const target = sessionId ?? this.sessions()[0]?.sessionId;

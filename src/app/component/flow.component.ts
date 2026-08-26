@@ -136,6 +136,7 @@ export class FlowComponent {
     }
 
     private connectMcp(ownerKey: string, mcpName: string): void {
+        if (this.edges().some(e => e.source === ownerKey && e.target === mcpName)) return;
         const index = this.countMcpEdges(ownerKey);
         const {sourceHandle, targetHandle} = this.mcpHandles(index);
         this.setMcpSide(mcpName, index % 2 === 0 ? 'right' : 'left');

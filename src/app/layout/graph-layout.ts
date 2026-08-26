@@ -122,8 +122,8 @@ export function layoutMacroGraph(
         }
 
         const mcps = mcpsOf.get(id) ?? [];
-        const left = mcps.filter((_, i) => i % 2 === 0);
-        const right = mcps.filter((_, i) => i % 2 === 1);
+        const left = mcps.filter((_, i) => i % 2 === 1);
+        const right = mcps.filter((_, i) => i % 2 === 0);
         left.forEach((mcp, i) => {
             if (positions.has(mcp)) return;
             positions.set(mcp, {x: x - options.mcpGap, y: y + (i - (left.length - 1) / 2) * options.mcpStackGap});

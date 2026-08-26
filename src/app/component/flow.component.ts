@@ -138,7 +138,7 @@ export class FlowComponent {
     private connectMcp(ownerKey: string, mcpName: string): void {
         const index = this.countMcpEdges(ownerKey);
         const {sourceHandle, targetHandle} = this.mcpHandles(index);
-        this.setMcpSide(mcpName, index % 2 === 0 ? 'left' : 'right');
+        this.setMcpSide(mcpName, index % 2 === 0 ? 'right' : 'left');
         this.addEdge(ownerKey, mcpName, sourceHandle, targetHandle);
     }
 
@@ -158,8 +158,8 @@ export class FlowComponent {
 
     private mcpHandles(index: number): {sourceHandle: string; targetHandle: string} {
         return index % 2 === 0
-            ? {sourceHandle: 's-left', targetHandle: 't-right'}
-            : {sourceHandle: 's-right', targetHandle: 't-left'};
+            ? {sourceHandle: 's-right', targetHandle: 't-left'}
+            : {sourceHandle: 's-left', targetHandle: 't-right'};
     }
 
     private deferEdge(parentSessionId: string, edge: DeferredEdge): void {

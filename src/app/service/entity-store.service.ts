@@ -1,56 +1,56 @@
-import {computed, Injectable, signal} from "@angular/core";
-import {Agent, MCP} from "@agentspyglass/core";
+import {Injectable, computed, signal} from '@angular/core';
+import {Agent, MCP} from '@agentspyglass/core';
 
-const identityKey = (agent: Pick<Agent, 'brand' | 'name' | 'model'>): string =>
-    `${agent.brand?.name ?? ''}|${agent.name}|${agent.model}`;
+type AgentGroup = {
+    identity: string;
+    sessions: string[];
+};
 
 @Injectable({providedIn: 'root'})
 export class EntityStoreService {
     private readonly agents = signal<Map<string, Agent>>(new Map());
     private readonly mcps = signal<Map<string, MCP>>(new Map());
     private readonly mcpsBySession = signal<Map<string, Set<string>>>(new Map());
+    private readonly sessionToGroup = signal<Map<string, string>>(new Map());
 
     readonly agentList = computed(() => Array.from(this.agents().values()));
 
-    private readonly agentGroups = computed(() => {
-        const groups = new Map<string, Agent[]>();
-        for (const agent of this.agentList()) {
-            const key = identityKey(agent);
-            const bucket = groups.get(key);
-            if (bucket) bucket.push(agent);
-            else groups.set(key, [agent]);
+    readonly agentGroups = computed((): AgentGroup[] => {
+        const groups = new Map<string, AgentGroup>();
+        for (const agent of this.agents().values()) {
+            const key = this.resolveGroupKey(agent.sessionId) ?? agent.sessionId;
+            if (!groups.has(key)) {
+                groups.set(key, {identity: agent.name, sessions: []});
+            }
+            const group = groups.get(key)!;
+            if (!group.sessions.includes(agent.sessionId)) {
+                group.sessions.push(agent.sessionId);
+            }
         }
-        return groups;
+        return Array.from(groups.values());
     });
+
+    upsertAgent(agent: Agent): void {
+        this.agents.update(map => {
+            const next = new Map(map);
+            next.set(agent.sessionId, agent);
+            return next;
+        });
+        if (!this.sessionToGroup().has(agent.sessionId)) {
+            this.sessionToGroup.update(map => {
+                const next = new Map(map);
+                next.set(agent.sessionId, agent.sessionId);
+                return next;
+            });
+        }
+    }
 
     getAgent(sessionId: string): Agent | undefined {
         return this.agents().get(sessionId);
     }
 
-    getMcp(name: string): MCP | undefined {
-        return this.mcps().get(name);
-    }
-
     resolveGroupKey(sessionId: string): string | undefined {
-        const agent = this.agents().get(sessionId);
-        return agent ? identityKey(agent) : undefined;
-    }
-
-    getSessions(groupKey: string): Agent[] {
-        return this.agentGroups().get(groupKey) ?? [];
-    }
-
-    upsertAgent(agent: Agent): void {
-        this.agents.update(map => {
-            const previous = map.get(agent.sessionId);
-            const next = new Map(map);
-            next.set(agent.sessionId, {
-                ...agent,
-                cost: (previous?.cost ?? 0) + (agent.cost ?? 0),
-                tokens: (previous?.tokens ?? 0) + (agent.tokens ?? 0),
-            });
-            return next;
-        });
+        return this.sessionToGroup().get(sessionId);
     }
 
     upsertMcp(mcp: MCP): void {
@@ -61,12 +61,17 @@ export class EntityStoreService {
         });
     }
 
+    getMcp(name: string): MCP | undefined {
+        return this.mcps().get(name);
+    }
+
     associateMcp(sessionId: string, mcpName: string): void {
         this.mcpsBySession.update(map => {
-            const existing = map.get(sessionId);
-            if (existing?.has(mcpName)) return map;
             const next = new Map(map);
-            next.set(sessionId, new Set(existing).add(mcpName));
+            if (!next.has(sessionId)) {
+                next.set(sessionId, new Set());
+            }
+            next.get(sessionId)!.add(mcpName);
             return next;
         });
     }
@@ -75,7 +80,8 @@ export class EntityStoreService {
         return Array.from(this.mcpsBySession().get(sessionId) ?? []);
     }
 
-    findPrimaryAgent(): Agent | undefined {
-        return this.agentList().find(a => a.role === 'primary');
+    isSubagent(sessionId: string): boolean {
+        const agent = this.getAgent(sessionId);
+        return !!agent?.targetSessionId;
     }
 }

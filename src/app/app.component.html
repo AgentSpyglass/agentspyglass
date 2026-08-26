@@ -1,27 +1,21 @@
-<a href="https://github.com/vitorblog/agentspyglass" target="_blank" class="fixed top-3 left-3 bg-bg transition border-1 border-tertiary transition hover:bg-accent/30">
-	<img src="assets/logo.png" alt="AgentSpyglass logo" class="w-32">
-</a>
+<div class="app-container">
+    <flow #flow></flow>
 
-<session-info [list]="todoList()" [usage]="usage()"></session-info>
+    <div class="top-right-controls">
+        @for (control of zoomControls; track control.label) {
+            <button
+                class="icon-button"
+                [title]="control.label"
+                [disabled]="control.disabled()"
+                (click)="control.action()">
+                <hugeicons-icon [icon]="control.icon" />
+            </button>
+        }
+    </div>
 
-<section class="fixed bottom-2 left-3 z-5 flex gap-1 items-center">
-	@for (btn of zoomControls; track btn.label) {
-		<button
-				class="border-1 border-tertiary bg-bg grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
-				(click)="btn.action()"
-				[disabled]="btn.disabled()"
-				[attr.aria-label]="btn.label"
-				[title]="btn.label"
-		>
-			<hugeicons-icon
-					[icon]="btn.icon"
-					[size]="24"
-					color="currentColor"
-					[strokeWidth]="1.5" />
-		</button>
-	}
-</section>
+    <session-info [list]="todoList()" [usage]="usage()" />
 
-<flow></flow>
+    <agent-modal />
 
-<agent-modal></agent-modal>
+    <presentation-controls />
+</div>

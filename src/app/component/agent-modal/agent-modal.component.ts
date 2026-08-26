@@ -83,6 +83,31 @@ export class AgentModalComponent {
         this.modal.close();
     }
 
+    focusNode(nodeId: string): void {
+        const attemptFocus = () => {
+            const node = this.nodes().find(n => n.id === nodeId);
+            if (!node) {
+                requestAnimationFrame(attemptFocus);
+                return;
+            }
+
+            const point = node.point();
+            const vflowInstance = this.vflow();
+            if (!vflowInstance) return;
+
+            const viewport = vflowInstance.viewport();
+            const centerX = 400;
+            const centerY = 300;
+
+            const x = centerX - point.x * viewport.zoom;
+            const y = centerY - point.y * viewport.zoom;
+
+            vflowInstance.panTo({x, y});
+        };
+
+        attemptFocus();
+    }
+
     private rebuildGraph(activeId: string): void {
         const agent = this.entityStore.getAgent(activeId);
         const parentId = agent?.targetSessionId;

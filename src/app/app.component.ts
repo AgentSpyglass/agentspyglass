@@ -4,13 +4,16 @@ import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {ArrowExpandIcon, SearchAddIcon, SearchMinusIcon, Telescope01Icon} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
-import {Todo, Tool} from "@agentspyglass/core";
+import {AgentEvent, Todo, ToolEvent, StatusEvent, TodoEvent} from "@agentspyglass/core";
 import {SessionInfoComponent} from "./component/session-info/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
 import {AgentModalComponent} from "./component/agent-modal/agent-modal.component";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
-import {StatusData} from "./model/definitions";
+import {StatusData, PresentationEvent} from "./model/definitions";
 import {DefaultImageDirective} from "./directive/default-image.directive";
+import {PresentationService} from "./service/presentation.service";
+import {AgentModalService} from "./service/agent-modal.service";
+import {PresentationControlsComponent} from "./component/presentation-controls/presentation-controls.component";
 
 @Component({
     selector: "app-root",
@@ -19,7 +22,8 @@ import {DefaultImageDirective} from "./directive/default-image.directive";
         FlowComponent,
         SessionInfoComponent,
         AgentModalComponent,
-        DefaultImageDirective
+        DefaultImageDirective,
+        PresentationControlsComponent
     ],
     templateUrl: "./app.component.html",
     styleUrl: "./app.component.css",
@@ -29,6 +33,8 @@ export class AppComponent implements AfterViewInit {
     bridge = inject(BridgeService);
     brand = inject(BrandService);
     entityStore = inject(EntityStoreService);
+    presentation = inject(PresentationService);
+    agentModal = inject(AgentModalService);
     private destroyRef = inject(DestroyRef);
 
     todoList = signal<Todo[]>([]);
@@ -86,6 +92,15 @@ export class AppComponent implements AfterViewInit {
             };
             this.entityStore.upsertAgent(agent);
             this.flow.addAgent(agent);
+
+            const groupKey = this.entityStore.resolveGroupKey(agentEvent.sessionId);
+            this.presentation.push({
+                type: 'agent',
+                nodeId: groupKey ?? null,
+                view: this.resolveFocus(agentEvent),
+                timestamp: Date.now(),
+                data: agentEvent
+            });
         });
 
         this.bridge.toolEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(toolEvent => {
@@ -99,7 +114,7 @@ export class AppComponent implements AfterViewInit {
                 };
             }
 
-            const tool: Tool = {
+            const tool = {
                 callId: toolEvent.callId,
                 name: toolEvent.name,
                 input: toolEvent.input ?? {},
@@ -118,6 +133,14 @@ export class AppComponent implements AfterViewInit {
 
             this.entityStore.upsertMcp(mcp);
             this.flow.addMcp(toolEvent.sessionId, mcp);
+
+            this.presentation.push({
+                type: 'tool',
+                nodeId: name,
+                view: this.resolveFocus(toolEvent),
+                timestamp: Date.now(),
+                data: toolEvent
+            });
         });
 
         this.bridge.statusEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(statusEvent => {
@@ -128,11 +151,62 @@ export class AppComponent implements AfterViewInit {
                     tokenBreakdown: statusEvent.tokens
                 });
             }
+
+            this.presentation.push({
+                type: 'status',
+                nodeId: null,
+                view: 'macro',
+                timestamp: Date.now(),
+                data: statusEvent
+            });
         });
 
         this.bridge.todoEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(todoEvent => {
             this.todoList.set(todoEvent.todos);
+
+            this.presentation.push({
+                type: 'todo',
+                nodeId: null,
+                view: 'macro',
+                timestamp: Date.now(),
+                data: todoEvent
+            });
         });
+
+        this.presentation.setFocusCallback(event => this.focusOnEvent(event));
+    }
+
+    private resolveFocus(event: AgentEvent | ToolEvent): 'macro' | 'micro' {
+        if ('sessionId' in event) {
+            const sessionId = event.sessionId;
+            if (this.entityStore.isSubagent(sessionId)) {
+                return 'micro';
+            }
+        }
+        if ('name' in event && this.agentModal.isOpen()) {
+            return 'micro';
+        }
+        return 'macro';
+    }
+
+    private focusOnEvent(event: PresentationEvent): void {
+        if (!this.presentation.enabled()) return;
+        if (!event.nodeId) return;
+
+        if (event.view === 'macro') {
+            this.flow.focusNode(event.nodeId);
+        } else if (event.view === 'micro') {
+            if ('sessionId' in event.data) {
+                const agentEvent = event.data as AgentEvent;
+                if (this.entityStore.isSubagent(agentEvent.sessionId)) {
+                    const agent = this.entityStore.getAgent(agentEvent.sessionId);
+                    if (agent?.targetSessionId) {
+                        this.agentModal.open(agent.targetSessionId);
+                        setTimeout(() => this.flow.focusNode(event.nodeId!), 100);
+                    }
+                }
+            }
+        }
     }
 
     ngAfterViewInit() {

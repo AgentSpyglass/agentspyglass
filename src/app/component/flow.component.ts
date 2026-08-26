@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
+import {ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
 import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
@@ -34,13 +34,13 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 	    <vflow
                 #vflow
                 view="auto"
-			    [nodes]="nodes()"
+		    [nodes]="nodes()"
                 [edges]="edges()"
-			    [minZoom]="0.1"
-			    [maxZoom]="1.5"
-			    [snapGrid]="[25, 25]"
-			    [elevateEdgesOnSelect]="false"
-			    [background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
+		    [minZoom]="0.1"
+		    [maxZoom]="1.5"
+		    [snapGrid]="[25, 25]"
+		    [elevateEdgesOnSelect]="false"
+		    [background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
 	    />
     `,
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -51,6 +51,7 @@ export class FlowComponent {
     edges: WritableSignal<Edge[]> = signal([]);
 
     private entityStore = inject(EntityStoreService);
+    private elementRef = inject(ElementRef);
 
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
 
@@ -97,6 +98,24 @@ export class FlowComponent {
 
     viewport() {
         return this.vflow().viewport();
+    }
+
+    focusNode(nodeId: string): void {
+        const node = this.nodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        const point = node.point();
+        const viewport = this.vflow().viewport();
+        const host = this.elementRef.nativeElement as HTMLElement;
+        const rect = host.getBoundingClientRect();
+
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const x = centerX - point.x * viewport.zoom;
+        const y = centerY - point.y * viewport.zoom;
+
+        this.vflow().panTo({x, y});
     }
 
     public addAgent(agent: Agent) {

@@ -103,7 +103,7 @@ export class PresentationService implements OnDestroy {
     }
 
     /** Start or restart the 2s auto-play interval. */
-    private startAutoPlay(): void {
+    startAutoPlay(): void {
         this.stopAutoPlay();
         this.intervalId = setInterval(() => this.next(), 2000);
     }

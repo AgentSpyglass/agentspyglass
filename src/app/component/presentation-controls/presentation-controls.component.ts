@@ -19,7 +19,7 @@ import {PresentationService} from "../../service/presentation.service";
     ],
     template: `
         @if (presentation.events().length > 0) {
-            <section class="fixed bottom-2 left-1/2 -translate-x-1/2 z-5 flex gap-1 items-center">
+            <section class="fixed bottom-2 left-1/2 -translate-x-1/2 z-[60] flex gap-1 items-center">
                 <button
                         class="border-1 border-tertiary bg-bg grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
                         [disabled]="presentation.events().length <= 1"
@@ -60,7 +60,7 @@ import {PresentationService} from "../../service/presentation.service";
                 <button
                         class="border-1 border-tertiary bg-bg grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
                         [disabled]="presentation.currentIndex() >= presentation.events().length - 1"
-                        (click)="presentation.goToEnd()"
+                        (click)="goToEndAndPlay()"
                         aria-label="Go to end"
                         title="Go to end">
                     <hugeicons-icon [icon]="FastForwardIcon" [size]="24" color="currentColor" [strokeWidth]="1.5"/>
@@ -80,6 +80,12 @@ export class PresentationControlsComponent {
         const i = this.presentation.currentIndex();
         return i < 0 ? 0 : i + 1;
     });
+
+    goToEndAndPlay(): void {
+        this.presentation.goToEnd();
+        this.presentation.enabled.set(true);
+        this.presentation.startAutoPlay();
+    }
 
     protected readonly ArrowLeftIcon = ArrowLeftIcon;
     protected readonly ArrowRightIcon = ArrowRightIcon;

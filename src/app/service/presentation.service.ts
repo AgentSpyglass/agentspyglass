@@ -18,6 +18,19 @@ export class PresentationService implements OnDestroy {
         return list[i];
     });
 
+    readonly visibleNodeIds = computed<Set<string> | null>(() => {
+        if (!this.enabled()) return null;
+        const list = this.events();
+        const i = this.currentIndex();
+        const ids = new Set<string>();
+        if (i < 0) return ids;
+        for (let k = 0; k <= i; k++) {
+            const id = list[k]?.nodeId;
+            if (id) ids.add(id);
+        }
+        return ids;
+    });
+
     readonly focusCallback = signal<((event: PresentationEvent | null) => void) | null>(null);
 
     setFocusCallback(cb: (event: PresentationEvent | null) => void): void {

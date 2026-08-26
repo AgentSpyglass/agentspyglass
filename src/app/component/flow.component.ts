@@ -4,6 +4,7 @@ import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {resolveNodeComponent} from "./node/node-types";
 import {EntityStoreService} from "../service/entity-store.service";
+import {PresentationService} from "../service/presentation.service";
 import {layoutMacroGraph, MacroLayoutOptions, MacroNodeKind} from "../layout/graph-layout";
 import gsap from "gsap";
 
@@ -35,8 +36,8 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 	    <vflow
                 #vflow
                 view="auto"
-			    [nodes]="nodes()"
-                [edges]="edges()"
+			    [nodes]="visibleNodes()"
+                [edges]="visibleEdges()"
 			    [minZoom]="0.1"
 			    [maxZoom]="1.5"
 			    [snapGrid]="[25, 25]"
@@ -51,7 +52,11 @@ export class FlowComponent {
     nodes: WritableSignal<ComponentNode[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
+    readonly visibleNodes = computed(() => this.filterNodes(this.nodes()));
+    readonly visibleEdges = computed(() => this.filterEdges(this.edges()));
+
     private entityStore = inject(EntityStoreService);
+    private presentation = inject(PresentationService);
     private hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
@@ -60,8 +65,8 @@ export class FlowComponent {
 
     constructor() {
         effect(() => {
-            const nodes = this.nodes();
-            const edges = this.edges();
+            const nodes = this.visibleNodes();
+            const edges = this.visibleEdges();
             if (nodes.length === 0) return;
 
             const kinds = new Map<string, MacroNodeKind>();
@@ -238,5 +243,17 @@ export class FlowComponent {
                 targetHandle
             }]);
         }
+    }
+
+    private filterNodes(nodes: ComponentNode[]): ComponentNode[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return nodes;
+        return nodes.filter(n => visible.has(n.id));
+    }
+
+    private filterEdges(edges: Edge[]): Edge[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return edges;
+        return edges.filter(e => visible.has(e.source) && visible.has(e.target));
     }
 }

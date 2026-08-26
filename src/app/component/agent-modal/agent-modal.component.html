@@ -33,8 +33,8 @@
 			<div class="flex-1 min-h-0">
 				<vflow
 						view="auto"
-						[nodes]="nodes()"
-						[edges]="edges()"
+						[nodes]="visibleNodes()"
+						[edges]="visibleEdges()"
 						[minZoom]="0.35"
 						[maxZoom]="1.25"
 						[elevateEdgesOnSelect]="false"

@@ -6,6 +6,7 @@ import {Cancel01Icon} from "@hugeicons/core-free-icons";
 import {AgentModalService} from "../../service/agent-modal.service";
 import {EntityStoreService} from "../../service/entity-store.service";
 import {GsapAnimationService} from "../../service/gsap-animation.service";
+import {PresentationService} from "../../service/presentation.service";
 import {NodeData, USER_AGENT} from "../../model/definitions";
 import {resolveNodeComponent} from "../node/node-types";
 import {layoutMicroGraph, MicroLayoutOptions} from "../../layout/graph-layout";
@@ -41,6 +42,7 @@ export class AgentModalComponent {
     private modal = inject(AgentModalService);
     private entityStore = inject(EntityStoreService);
     private gsap = inject(GsapAnimationService);
+    private presentation = inject(PresentationService);
     private hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
     readonly open = this.modal.isOpen;
@@ -51,6 +53,9 @@ export class AgentModalComponent {
 
     readonly nodes: WritableSignal<ComponentNode[]> = signal([]);
     readonly edges: WritableSignal<Edge[]> = signal([]);
+
+    readonly visibleNodes = computed(() => this.filterNodes(this.nodes()));
+    readonly visibleEdges = computed(() => this.filterEdges(this.edges()));
 
     readonly activeAgentId = this.modal.activeAgentId;
 
@@ -200,6 +205,18 @@ export class AgentModalComponent {
             if (openedFor !== null && openedFor !== this.modal.activeAgentId()) return;
             this.vflow()?.fitView({padding: 0.2, duration: 200});
         }));
+    }
+
+    private filterNodes(nodes: ComponentNode[]): ComponentNode[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return nodes;
+        return nodes.filter(n => visible.has(n.id));
+    }
+
+    private filterEdges(edges: Edge[]): Edge[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return edges;
+        return edges.filter(e => visible.has(e.source) && visible.has(e.target));
     }
 
     protected readonly Cancel01Icon = Cancel01Icon;

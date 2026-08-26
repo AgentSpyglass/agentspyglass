@@ -11,6 +11,7 @@ import {resolveNodeComponent} from "../node/node-types";
 import {layoutMicroGraph, MicroLayoutOptions} from "../../layout/graph-layout";
 import {NameCasePipe} from "../../pipe/namecase.pipe";
 import {DefaultImageDirective} from "../../directive/default-image.directive";
+import gsap from 'gsap';
 
 const MICRO_LAYOUT: MicroLayoutOptions = {
     origin: {x: 0, y: 0},
@@ -40,6 +41,9 @@ export class AgentModalComponent {
     private modal = inject(AgentModalService);
     private entityStore = inject(EntityStoreService);
     private gsap = inject(GsapAnimationService);
+    private hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
+
+    readonly open = this.modal.isOpen;
 
     private overlayEl = viewChild<ElementRef<HTMLElement>>('overlay');
     private panelEl = viewChild<ElementRef<HTMLElement>>('panel');
@@ -81,6 +85,45 @@ export class AgentModalComponent {
 
     close(): void {
         this.modal.close();
+    }
+
+    /** Center the modal's viewport on the node with the given id (waits for the node, then smooth). */
+    focusNode(nodeId: string): void {
+        if (!this.open()) return;
+
+        let attempts = 0;
+        const step = () => {
+            const vflow = this.vflow();
+            if (vflow?.getNode(nodeId)) {
+                this.animateTo(vflow, nodeId);
+                return;
+            }
+            if (attempts++ < 60) requestAnimationFrame(step);
+        };
+        step();
+    }
+
+    private animateTo(vflow: VflowComponent, nodeId: string): void {
+        const node = vflow.getNode(nodeId);
+        if (!node) return;
+        const point = node.point();
+        const zoom = vflow.viewport().zoom;
+        const rect = this.hostEl.nativeElement.getBoundingClientRect();
+        const width = rect.width || 800;
+        const height = rect.height || 600;
+        const target = {
+            x: width / 2 - point.x * zoom,
+            y: height / 2 - point.y * zoom,
+        };
+        const vp = vflow.viewport();
+        const proxy = {x: vp.x, y: vp.y};
+        gsap.to(proxy, {
+            x: target.x,
+            y: target.y,
+            duration: 0.3,
+            ease: 'power2.out',
+            onUpdate: () => vflow.panTo({x: proxy.x, y: proxy.y}),
+        });
     }
 
     private rebuildGraph(activeId: string): void {

@@ -1,10 +1,11 @@
-import {ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
+import {ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
 import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {resolveNodeComponent} from "./node/node-types";
 import {EntityStoreService} from "../service/entity-store.service";
 import {layoutMacroGraph, MacroLayoutOptions, MacroNodeKind} from "../layout/graph-layout";
+import gsap from "gsap";
 
 type Point = { x: number; y: number };
 
@@ -51,6 +52,7 @@ export class FlowComponent {
     edges: WritableSignal<Edge[]> = signal([]);
 
     private entityStore = inject(EntityStoreService);
+    private hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
 
@@ -97,6 +99,35 @@ export class FlowComponent {
 
     viewport() {
         return this.vflow().viewport();
+    }
+
+    /** Center the viewport on the node with the given id (smooth). */
+    focusNode(nodeId: string): void {
+        const node = this.vflow().getNode(nodeId);
+        if (!node) return;
+        const point = node.point();
+        const zoom = this.vflow().viewport().zoom;
+        const rect = this.hostEl.nativeElement.getBoundingClientRect();
+        const width = rect.width || 800;
+        const height = rect.height || 600;
+        const target = {
+            x: width / 2 - point.x * zoom,
+            y: height / 2 - point.y * zoom,
+        };
+        this.animateViewport(target.x, target.y);
+    }
+
+    /** Smoothly pan the viewport to a target (x, y) keeping zoom constant. */
+    private animateViewport(targetX: number, targetY: number): void {
+        const vp = this.vflow().viewport();
+        const proxy = {x: vp.x, y: vp.y};
+        gsap.to(proxy, {
+            x: targetX,
+            y: targetY,
+            duration: 0.3,
+            ease: 'power2.out',
+            onUpdate: () => this.vflow().panTo({x: proxy.x, y: proxy.y}),
+        });
     }
 
     public addAgent(agent: Agent) {

@@ -1,7 +1,7 @@
 ---
 description: Reviews Angular and Rust code for quality, type safety, and architecture adherence.
 mode: subagent
-model: opencode-go/hy3
+model: opencode-go/mimo-v2.5
 permission:
   edit: deny
   bash: allow
@@ -103,7 +103,7 @@ Check:
 
 ```text
 src/app/component/flow.component.ts
-src/app/component/node/agent/agent.node.ts
+src/app/component/node/agent/subagent.node.ts
 src/app/component/node/mcp/mcp.node.ts
 src/app/component/node/message/message.node.ts
 src/app/component/node/info/info.node.ts

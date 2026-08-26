@@ -78,4 +78,9 @@ export class EntityStoreService {
     findPrimaryAgent(): Agent | undefined {
         return this.agentList().find(a => a.role === 'primary');
     }
+
+    isSubagent(sessionId: string): boolean {
+        const agent = this.agents().get(sessionId);
+        return !!agent && (agent.role === 'subagent' || !!agent.targetSessionId);
+    }
 }

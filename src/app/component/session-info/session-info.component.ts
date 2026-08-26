@@ -1,4 +1,4 @@
-import {Component, computed, input, signal} from '@angular/core';
+import {Component, computed, inject, input, signal} from '@angular/core';
 import {Todo} from "@agentspyglass/core";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {
@@ -16,6 +16,7 @@ import {StatusData} from "../../model/definitions";
 import {SettingsComponent} from "../settings/settings.component";
 import {CurrencyPipe} from "@angular/common";
 import {CompactNumberPipe} from "../../pipe/compact-number.pipe";
+import {PresentationService} from "../../service/presentation.service";
 
 @Component({
     selector: 'session-info',
@@ -35,6 +36,7 @@ export class SessionInfoComponent {
     usage = input.required<StatusData>();
 
     settingsOpen = signal(false);
+    presentation = inject(PresentationService);
 
     tokenBreakdown = computed(() => this.usage().tokenBreakdown);
 
@@ -47,8 +49,8 @@ export class SessionInfoComponent {
         {
             icon: Presentation01Icon,
             label: 'Presentation',
-            action: () => this.toggleSettings(),
-            disabled: () => true,
+            action: () => this.togglePresentation(),
+            disabled: () => false,
         },
         {
             icon: Settings01Icon,
@@ -64,6 +66,10 @@ export class SessionInfoComponent {
 
     toggleTokens() {
         this.showTokens.update((v) => !v);
+    }
+
+    togglePresentation(): void {
+        this.presentation.toggle();
     }
 
     toggleSettings(): void {

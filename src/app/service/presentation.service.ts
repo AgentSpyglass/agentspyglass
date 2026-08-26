@@ -67,7 +67,20 @@ export class PresentationService {
         this.focus(this.currentEvent());
     }
 
+    goToEnd(): void {
+        if (this.events().length === 0) return;
+        this.currentIndex.set(this.events().length - 1);
+        this.focus(this.currentEvent());
+    }
+
     toggle(): void {
+        const wasEnabled = this.enabled();
         this.enabled.update(v => !v);
+        
+        // When re-enabling, resume at the last slide if no current event
+        if (!wasEnabled && this.currentIndex() < 0 && this.events().length > 0) {
+            this.currentIndex.set(this.events().length - 1);
+            this.focus(this.currentEvent());
+        }
     }
 }

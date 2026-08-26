@@ -193,6 +193,7 @@ export class AppComponent implements AfterViewInit {
             }
             this.modal?.focusNode(target.nodeId);
         } else {
+            this.agentModal.close();
             this.flow.focusNode(target.nodeId);
         }
     }

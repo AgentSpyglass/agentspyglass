@@ -1,11 +1,12 @@
-import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, inject} from '@angular/core';
 import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {
+    ArrowLeftIcon,
+    ArrowRightIcon,
+    ArrowRight02Icon,
     PlayIcon,
     PauseIcon,
-    SkipBackIcon,
-    SkipForwardIcon,
-    RestartIcon
+    RefreshIcon
 } from "@hugeicons/core-free-icons";
 import {PresentationService} from "../../service/presentation.service";
 
@@ -13,100 +14,77 @@ import {PresentationService} from "../../service/presentation.service";
     selector: 'presentation-controls',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [HugeiconsIconComponent],
+    imports: [
+        HugeiconsIconComponent
+    ],
     template: `
         @if (presentation.events().length > 0) {
-            <div class="controls">
-                <button (click)="restart()" [disabled]="presentation.currentIndex() <= 0">
-                    <hugeicons-icon [icon]="RestartIcon" />
+            <div class="fixed bottom-2 left-1/2 -translate-x-1/2 z-5 flex gap-1 items-center border-1 border-tertiary bg-bg rounded-lg px-2 py-1">
+                <button
+                        class="grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
+                        [disabled]="presentation.events().length <= 1"
+                        (click)="presentation.prev()"
+                        aria-label="Previous"
+                        title="Previous">
+                    <hugeicons-icon [icon]="ArrowLeftIcon" [size]="24" color="currentColor" [strokeWidth]="1.5"/>
                 </button>
-                <button (click)="prev()" [disabled]="presentation.currentIndex() <= 0">
-                    <hugeicons-icon [icon]="SkipBackIcon" />
+
+                <button
+                        class="grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
+                        (click)="presentation.toggle()"
+                        [attr.aria-label]="presentation.enabled() ? 'Pause' : 'Play'"
+                        [title]="presentation.enabled() ? 'Pause' : 'Play'">
+                    <hugeicons-icon
+                            [icon]="presentation.enabled() ? PauseIcon : PlayIcon"
+                            [size]="24" color="currentColor" [strokeWidth]="1.5"/>
                 </button>
-                <button (click)="toggle()">
-                    <hugeicons-icon [icon]="presentation.enabled() ? PauseIcon : PlayIcon" />
+
+                <button
+                        class="grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
+                        [disabled]="presentation.events().length <= 1"
+                        (click)="presentation.next()"
+                        aria-label="Next"
+                        title="Next">
+                    <hugeicons-icon [icon]="ArrowRightIcon" [size]="24" color="currentColor" [strokeWidth]="1.5"/>
                 </button>
-                <button (click)="next()" [disabled]="presentation.currentIndex() >= presentation.events().length - 1">
-                    <hugeicons-icon [icon]="SkipForwardIcon" />
+
+                <button
+                        class="grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
+                        [disabled]="presentation.events().length === 0"
+                        (click)="presentation.restart()"
+                        aria-label="Restart"
+                        title="Restart">
+                    <hugeicons-icon [icon]="RefreshIcon" [size]="24" color="currentColor" [strokeWidth]="1.5"/>
                 </button>
-                <span class="position">
-                    {{ presentation.currentIndex() + 1 }} / {{ presentation.events().length }}
+
+                <button
+                        class="grid h-10 w-10 place-items-center text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text"
+                        [disabled]="presentation.currentIndex() >= presentation.events().length - 1"
+                        (click)="presentation.goToEnd()"
+                        aria-label="Go to end"
+                        title="Go to end">
+                    <hugeicons-icon [icon]="ArrowRight02Icon" [size]="24" color="currentColor" [strokeWidth]="1.5"/>
+                </button>
+
+                <span class="ml-1 px-2 font-mono text-sm text-text/70 select-none">
+                    {{ position() }} / {{ presentation.events().length }}
                 </span>
             </div>
         }
-    `,
-    styles: [`
-        :host {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-        }
-
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(20, 20, 20, 0.9);
-            border-radius: 8px;
-            backdrop-filter: blur(8px);
-        }
-
-        button {
-            background: transparent;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .position {
-            color: #ccc;
-            font-size: 12px;
-            margin-left: 8px;
-            min-width: 60px;
-            text-align: center;
-        }
-    `]
+    `
 })
 export class PresentationControlsComponent {
-    presentation = inject(PresentationService);
+    readonly presentation = inject(PresentationService);
 
-    next(): void {
-        this.presentation.next();
-    }
+    readonly position = computed(() => {
+        const i = this.presentation.currentIndex();
+        return i < 0 ? 0 : i + 1;
+    });
 
-    prev(): void {
-        this.presentation.prev();
-    }
-
-    restart(): void {
-        this.presentation.restart();
-    }
-
-    toggle(): void {
-        this.presentation.toggle();
-    }
-
+    protected readonly ArrowLeftIcon = ArrowLeftIcon;
+    protected readonly ArrowRightIcon = ArrowRightIcon;
+    protected readonly ArrowRight02Icon = ArrowRight02Icon;
     protected readonly PlayIcon = PlayIcon;
     protected readonly PauseIcon = PauseIcon;
-    protected readonly SkipBackIcon = SkipBackIcon;
-    protected readonly SkipForwardIcon = SkipForwardIcon;
-    protected readonly RestartIcon = RestartIcon;
+    protected readonly RefreshIcon = RefreshIcon;
 }

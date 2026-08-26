@@ -39,6 +39,7 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 			    [minZoom]="0.1"
 			    [maxZoom]="1.5"
 			    [snapGrid]="[25, 25]"
+			    [elevateEdgesOnSelect]="false"
 			    [background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
 	    />
     `,
@@ -191,7 +192,8 @@ export class FlowComponent {
                 source,
                 target,
                 sourceHandle,
-                targetHandle
+                targetHandle,
+                curve: signal('smooth-step')
             }]);
         }
     }

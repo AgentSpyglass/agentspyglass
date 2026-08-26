@@ -105,7 +105,7 @@ export class AgentModalComponent {
             const key = `${source}->${target}`;
             if (seen.has(key)) return;
             seen.add(key);
-            edgeList.push({id: key, source, target, sourceHandle: 's-bottom', targetHandle: 't-top'});
+            edgeList.push({id: key, source, target, sourceHandle: 's-bottom', targetHandle: 't-top', curve: signal('smooth-step')});
         };
 
         if (agent) {

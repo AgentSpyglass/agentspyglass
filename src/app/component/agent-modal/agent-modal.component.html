@@ -1,0 +1,46 @@
+@if (agent(); as agent) {
+	<div #overlay class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity"
+	     (click)="close()">
+		<div #panel class="bg-bg border-1 border-tertiary shadow-xl w-[80vw] max-w-5xl h-[75vh] flex flex-col overflow-hidden"
+		     (click)="$event.stopPropagation()">
+			<div class="flex items-center justify-between p-3 border-b-1 border-tertiary">
+				<section class="font-black inline-flex items-center gap-2">
+					<img [src]="agent.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg"
+					     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+
+					<div>
+						<div>{{ agent.name | nameCase }}</div>
+						<div class="text-xs font-light text-text/50">
+							{{ agent.model | lowercase }}
+						</div>
+					</div>
+				</section>
+
+				<button
+						class="grid h-8 w-8 place-items-center rounded-md text-accent transition hover:bg-accent/30 hover:text-text cursor-pointer"
+						(click)="close()"
+						aria-label="Close agent details"
+				>
+					<hugeicons-icon
+							[icon]="Cancel01Icon"
+							[size]="18"
+							color="currentColor"
+							[strokeWidth]="1.5"
+					/>
+				</button>
+			</div>
+
+			<div class="flex-1 min-h-0">
+				<vflow
+						view="auto"
+						[nodes]="nodes()"
+						[edges]="edges()"
+						[minZoom]="0.35"
+						[maxZoom]="1.25"
+						[elevateEdgesOnSelect]="false"
+						[background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
+				/>
+			</div>
+		</div>
+	</div>
+}

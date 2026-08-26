@@ -1,47 +1,83 @@
-<section class="max-w-96 border-accent border bg-accent/20 p-4 py-4 rounded-lg flex flex-col gap-4"
-         [class.border-secondary]="agent()?.role === 'subagent'"
-         [class.bg-secondary/20]="agent()?.role === 'subagent'">
-	@if (agent()) {
-		<div class="font-black inline-flex items-center h-full gap-2">
-			<img [src]="agent()!.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+<section
+		class="min-w-80 max-w-96 border-accent border {{ isSubagent()? 'bg-secondary/20' : 'bg-accent/20' }} p-4 py-4 rounded-lg flex flex-col gap-4"
+		[class.border-secondary]="isSubagent()"
+		[class.cursor-pointer]="isSubagent()">
+	@if (agent(); as a) {
+		<div class="font-black inline-flex items-center justify-between h-full gap-2">
+			<section class="font-black inline-flex items-center h-full gap-2">
+				<img [src]="a.brand.logo" alt="AI logo" defaultImage="assets/agent_not_found.svg"
+				     class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
 
-			<div>
-				<div>{{ agent()!.name | nameCase }}</div>
-				<div class="text-xs font-light text-text/50">
-					{{ agent()!.model | lowercase }}
+				<div>
+					<div>{{ a.name | nameCase }}</div>
+					<div class="text-xs font-light text-text/50">
+						{{ a.model | lowercase }}
+					</div>
 				</div>
-			</div>
+			</section>
+
+			@if (!isUser() && !inModal() && sessions().length === 1) {
+				<button class="flex items-center justify-center w-8 h-8 rounded-lg border-1 border-tertiary cursor-pointer hover:bg-accent/30 hover:text-text"
+				        (click)="openModal()"
+				        aria-label="Open agent details"
+				        title="Open agent details">
+					<hugeicons-icon
+							[icon]="ArrowExpandDiagonal01Icon"
+							[size]="24"
+							color="currentColor"
+							[strokeWidth]="2"
+					/>
+				</button>
+			}
 		</div>
 
-		@if (agent()!.cost || agent()!.tokens) {
-			<div class="flex items-center gap-3 text-xs font-light text-text/50">
-				@if (agent()!.cost) {
-					<span class="inline-flex items-center gap-1">
-						<hugeicons-icon [icon]="Coins01Icon" [size]="12" color="currentColor" [strokeWidth]="2"/>
-						{{ agent()!.cost | compactNumber }}
-					</span>
-				}
-				@if (agent()!.tokens) {
-					<span class="inline-flex items-center gap-1">
-						<hugeicons-icon [icon]="CpuIcon" [size]="12" color="currentColor" [strokeWidth]="2"/>
-						{{ agent()!.tokens | compactNumber }}
-					</span>
+		<div class="flex items-center gap-3 text-xs font-light text-text/50">
+			<span class="inline-flex items-center gap-1">
+				<hugeicons-icon [icon]="Coins01Icon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+				{{ totalCost() | compactNumber }}
+			</span>
+			<span class="inline-flex items-center gap-1">
+				<hugeicons-icon [icon]="CpuIcon" [size]="12" color="currentColor" [strokeWidth]="2"/>
+				{{ totalTokens() | compactNumber }}
+			</span>
+		</div>
+
+		@if (sessions().length > 1) {
+			<div class="flex flex-col gap-1 border-t border-accent/40 pt-3 text-xs font-light text-text/70">
+				@for (s of sessions(); track s.sessionId) {
+					<div class="flex items-center justify-between gap-2 min-w-0">
+						<span class="truncate" [title]="s.title ?? s.sessionId">
+							{{ s.title ?? (s.sessionId | slice:0:8) }}
+						</span>
+						<button class="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg border-1 border-tertiary cursor-pointer hover:bg-accent/30 hover:text-text"
+						        (click)="openModal(s.sessionId)"
+						        aria-label="Open session details"
+						        title="Open session details">
+							<hugeicons-icon
+									[icon]="ArrowExpandDiagonal01Icon"
+									[size]="16"
+									color="currentColor"
+									[strokeWidth]="2"
+							/>
+						</button>
+					</div>
 				}
 			</div>
 		}
 	} @else {
-		<div class="font-black inline-flex items-center h-full gap-2">
-			<img src="" alt="Unknown agent" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
-
-			<div>
-				<div>Loading...</div>
-				<div class="text-xs font-light text-text/50">
-					—
-				</div>
-			</div>
+		<div class="inline-flex items-center gap-2">
+			<img src="assets/not_found.svg" alt="Unknown agent" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
+			<div>Loading...</div>
 		</div>
 	}
 </section>
 
-<handle type="source" position="left" />
-<handle type="target" position="right" />
+@if (isUser()) {
+	<handle type="source" position="bottom" id="s-bottom"/>
+} @else {
+	<handle type="source" position="right" id="s-right"/>
+	<handle type="source" position="bottom" id="s-bottom"/>
+}
+<handle type="source" position="left" id="s-left"/>
+<handle type="target" position="top" id="t-top"/>
+<handle type="target" position="left" id="t-left"/>

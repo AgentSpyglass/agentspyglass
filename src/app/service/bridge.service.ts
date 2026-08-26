@@ -1,5 +1,5 @@
 import {Injectable} from "@angular/core"
-import {Event, AgentEvent, ToolEvent, StatusEvent, MessageEvent, TodoEvent} from "@agentspyglass/core";
+import {Event, AgentEvent, ToolEvent, StatusEvent, TodoEvent} from "@agentspyglass/core";
 import {Subject} from "rxjs";
 
 @Injectable({providedIn: "root"})
@@ -9,7 +9,6 @@ export class BridgeService {
     agentEvent = new Subject<AgentEvent>();
     toolEvent = new Subject<ToolEvent>();
     statusEvent = new Subject<StatusEvent>();
-    messageEvent = new Subject<MessageEvent>();
     todoEvent = new Subject<TodoEvent>();
 
     connect(url = "ws://127.0.0.1:51763") {
@@ -26,9 +25,6 @@ export class BridgeService {
                     break;
                 case 'status':
                     this.statusEvent.next(event as StatusEvent);
-                    break;
-                case 'message':
-                    this.messageEvent.next(event as MessageEvent);
                     break;
                 case 'todo':
                     this.todoEvent.next(event as TodoEvent);

@@ -1,4 +1,4 @@
-<section class="w-96 border-zinc-500 border bg-zinc-500/10 p-4 py-4 rounded-lg flex flex-col gap-2">
+<section class="z-10 w-96 border-zinc-500 border bg-zinc-500/10 p-4 py-4 rounded-lg flex flex-col gap-2">
 	<div class="font-black inline-flex items-center h-full gap-2">
 		@if (mcp()) {
 			<img [src]="mcp()!.brand.logo" alt="AI logo" class="bg-white border-1 border-accent size-8 p-1 rounded-xl">
@@ -16,5 +16,11 @@
 	}
 </section>
 
-<handle type="source" position="right" />
-<handle type="target" position="right" />
+<handle type="source" position="right" id="s-right" />
+@if (inModal()) {
+	<handle type="target" position="top" id="t-top" />
+} @else if (mcpSide() === 'left') {
+	<handle type="target" position="right" id="t-right" />
+} @else {
+	<handle type="target" position="left" id="t-left" />
+}

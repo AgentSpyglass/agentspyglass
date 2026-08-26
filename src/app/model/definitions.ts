@@ -7,6 +7,7 @@ export type NodeData = {
     entityId?: string;
     content?: string;
     inModal?: boolean;
+    mcpSide?: 'left' | 'right';
 }
 
 export const USER_AGENT: Agent = {

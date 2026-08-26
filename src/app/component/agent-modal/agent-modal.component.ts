@@ -105,7 +105,7 @@ export class AgentModalComponent {
             const key = `${source}->${target}`;
             if (seen.has(key)) return;
             seen.add(key);
-            edgeList.push({id: key, source, target, sourceHandle: 's-bottom', targetHandle: 't-top', curve: signal('smooth-step')});
+            edgeList.push({id: key, source, target, sourceHandle: 's-bottom', targetHandle: 't-top'});
         };
 
         if (agent) {
@@ -123,7 +123,7 @@ export class AgentModalComponent {
                     id: name,
                     type: resolveNodeComponent('mcp'),
                     point: signal({x: 0, y: MICRO_LAYOUT.layerGap * 2}),
-                    data: signal({type: 'mcp', entityId: name, inModal: true} satisfies NodeData),
+                    data: signal({type: 'mcp', entityId: name, inModal: true, mcpSide: 'left'} satisfies NodeData),
                 });
                 connect(agent.sessionId, name);
             }

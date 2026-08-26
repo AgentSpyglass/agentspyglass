@@ -28,6 +28,9 @@ export class McpNode extends CustomNodeComponent<NodeData> {
         return this.entityStore.getMcp(data.entityId);
     });
 
+    mcpSide = computed(() => this.data()?.mcpSide);
+    inModal = computed(() => this.data()?.inModal);
+
     generateToolMessage(tool: Tool) {
         return `<span class="font-medium ${this.getColor(tool)}">${tool.name}</span> <span class="text-xs font-light ${this.getColor(tool)}">${JSON.stringify(tool.input)}</span>`
     }

@@ -129,11 +129,23 @@ export class FlowComponent {
         this.addNode('mcp', mcp.name, {type: 'mcp', entityId: mcp.name}, PROVISIONAL_POINT);
         const ownerKey = this.entityStore.resolveGroupKey(from);
         if (ownerKey) {
-            const {sourceHandle, targetHandle} = this.mcpHandles(this.countMcpEdges(ownerKey));
-            this.addEdge(ownerKey, mcp.name, sourceHandle, targetHandle);
+            this.connectMcp(ownerKey, mcp.name);
         } else {
             this.deferEdge(from, {target: mcp.name});
         }
+    }
+
+    private connectMcp(ownerKey: string, mcpName: string): void {
+        const index = this.countMcpEdges(ownerKey);
+        const {sourceHandle, targetHandle} = this.mcpHandles(index);
+        this.setMcpSide(mcpName, index % 2 === 0 ? 'left' : 'right');
+        this.addEdge(ownerKey, mcpName, sourceHandle, targetHandle);
+    }
+
+    private setMcpSide(mcpName: string, mcpSide: 'left' | 'right'): void {
+        const node = this.nodes().find(n => n.id === mcpName);
+        if (!node || !node.data) return;
+        node.data.set({...node.data(), mcpSide});
     }
 
     private isMcpNode(nodeId: string): boolean {
@@ -163,8 +175,7 @@ export class FlowComponent {
             for (const edge of deferred) {
                 if (edge.target === groupKey) continue;
                 if (this.isMcpNode(edge.target)) {
-                    const {sourceHandle, targetHandle} = this.mcpHandles(this.countMcpEdges(groupKey));
-                    this.addEdge(groupKey, edge.target, sourceHandle, targetHandle);
+                    this.connectMcp(groupKey, edge.target);
                 } else {
                     this.addEdge(groupKey, edge.target, 's-bottom', 't-top');
                 }
@@ -192,8 +203,7 @@ export class FlowComponent {
                 source,
                 target,
                 sourceHandle,
-                targetHandle,
-                curve: signal('smooth-step')
+                targetHandle
             }]);
         }
     }

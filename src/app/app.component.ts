@@ -181,29 +181,32 @@ export class AppComponent implements AfterViewInit {
     }
 
     private resolveFocus(event: PresentationEvent): { nodeId: string; view: 'macro' | 'micro'; parentSessionId?: string } | null {
+        if (!event.nodeId) return null;
+
         if (event.type === 'agent') {
             const agentEvent = event.data as AgentEvent;
             const agent = this.entityStore.getAgent(agentEvent.sessionId);
-            const parentSessionId = agent?.targetSessionId ?? agentEvent.targetSessionId;
-            if (parentSessionId) {
-                if (!event.nodeId) return null;
+            if (agent?.role === 'subagent') {
                 return {
                     nodeId: event.nodeId,
                     view: 'micro',
-                    parentSessionId
+                    parentSessionId: agent.targetSessionId
                 };
             }
-            return event.nodeId ? {nodeId: event.nodeId, view: 'macro'} : null;
+            return {nodeId: event.nodeId, view: 'macro'};
         }
 
         if (event.type === 'tool') {
             const toolEvent = event.data as ToolEvent;
             const agent = this.entityStore.getAgent(toolEvent.sessionId);
-            if (agent?.targetSessionId) {
-                if (!event.nodeId) return null;
-                return {nodeId: event.nodeId, view: 'micro', parentSessionId: agent.targetSessionId};
+            if (agent?.role === 'subagent') {
+                return {
+                    nodeId: event.nodeId,
+                    view: 'micro',
+                    parentSessionId: agent.targetSessionId
+                };
             }
-            return event.nodeId ? {nodeId: event.nodeId, view: 'macro'} : null;
+            return {nodeId: event.nodeId, view: 'macro'};
         }
 
         return null;

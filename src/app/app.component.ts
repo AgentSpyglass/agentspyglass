@@ -4,7 +4,7 @@ import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {ArrowExpandIcon, SearchAddIcon, SearchMinusIcon, Telescope01Icon} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
-import {Agent, Todo, Tool} from "@agentspyglass/core";
+import {Todo, Tool} from "@agentspyglass/core";
 import {SessionInfoComponent} from "./component/session-info/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
 import {AgentModalService} from "./service/agent-modal.service";
@@ -219,76 +219,6 @@ export class AppComponent implements AfterViewInit {
             this.atMaxZoom.set(zoom >= 1.5);
             this.atMinZoom.set(zoom <= 0.1);
         }, {injector: this.injector});
-
-
-        const agent = {
-            role: 'primary',
-            name: 'agentEvent.name',
-            sessionId: 'agentEvent.sessionId',
-            model: 'agentEvent.model',
-            brand: this.brand.resolveBrand(
-                'agentEvent.model',
-                'agentEvent.provider'
-            ),
-            title: 'agentEvent.title',
-            cost: 5,
-            tokens: 5,
-            targetSessionId: 'agentEvent.targetSessionId',
-        } as Agent;
-        this.entityStore.upsertAgent(agent);
-        this.flow.addAgent(agent);
-
-        const nodeId = this.entityStore.resolveGroupKey('agentEvent.sessionId') ?? 'agentEvent.sessionId';
-        this.presentation.push({
-            type: 'agent',
-            nodeId,
-            timestamp: Date.now(),
-            data: {
-                role: 'primary',
-                name: 'agentEvent.name',
-                sessionId: 'agentEvent.sessionId',
-                model: 'agentEvent.model',
-                provider: 'agentEvent.model',
-                title: 'agentEvent.title',
-                cost: 5,
-                tokens: 0,
-                targetSessionId: 'agentEvent.targetSessionId',
-            } as AgentEvent,
-        });
-        const agent2 = {
-            role: 'subagent',
-            name: 'agentEvent.name2',
-            sessionId: 'agentEvent.sessionId2',
-            model: 'agentEvent.model',
-            brand: this.brand.resolveBrand(
-                'agentEvent.model',
-                'agentEvent.provider'
-            ),
-            title: 'agentEvent.title',
-            cost: 5,
-            tokens: 5,
-            targetSessionId: 'agentEvent.sessionId',
-        } as Agent;
-        this.entityStore.upsertAgent(agent2);
-        this.flow.addAgent(agent2);
-
-        const nodeId2 = this.entityStore.resolveGroupKey('agentEvent.sessionId2') ?? 'agentEvent.sessionId2';
-        this.presentation.push({
-            type: 'agent',
-            nodeId: nodeId2,
-            timestamp: Date.now(),
-            data: {
-                role: 'subagent',
-                name: 'agentEvent.name',
-                sessionId: 'agentEvent.sessionId2',
-                model: 'agentEvent.model',
-                provider: 'agentEvent.model',
-                title: 'agentEvent.title',
-                cost: 5,
-                tokens: 0,
-                targetSessionId: 'agentEvent.sessionId',
-            } as AgentEvent,
-        });
     }
 
     fitView(): void {

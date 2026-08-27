@@ -1,4 +1,2 @@
-- name: tauri-action
-  # You may pin to the exact commit or the version.
-  # uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
-  uses: tauri-apps/tauri-action@action-v1.0.0
+name: release-main
+uses: tauri-apps/tauri-action@action-v1.0.0

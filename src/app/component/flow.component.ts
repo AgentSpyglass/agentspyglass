@@ -45,6 +45,7 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 			    [background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
 	    />
     `,
+    styles: [`:host { display: block; width: 100%; height: 100%; }`],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FlowComponent {

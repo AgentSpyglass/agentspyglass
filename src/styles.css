@@ -17,6 +17,11 @@ body {
     height: 100%;
 }
 
+app-root {
+    display: block;
+    height: 100%;
+}
+
 a {
     @apply text-inherit no-underline;
 }

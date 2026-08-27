@@ -41,8 +41,15 @@ export class PresentationService implements OnDestroy {
 
     readonly focusCallback = signal<((event: PresentationEvent | null) => void) | null>(null);
 
+    /** id of the node currently highlighted during presentation mode. */
+    readonly focusedNodeId = signal<string | null>(null);
+
     setFocusCallback(cb: (event: PresentationEvent | null) => void): void {
         this.focusCallback.set(cb);
+    }
+
+    setFocusedNodeId(id: string | null): void {
+        this.focusedNodeId.set(id);
     }
 
     private focus(event: PresentationEvent | null): void {
@@ -106,6 +113,7 @@ export class PresentationService implements OnDestroy {
             this.startAutoPlay();
         } else {
             this.stopAutoPlay();
+            this.focusedNodeId.set(null);
         }
     }
 

@@ -162,10 +162,18 @@ export class AppComponent implements AfterViewInit {
     }
 
     private focusOnEvent(event: PresentationEvent | null): void {
-        if (!event) return;
+        if (!event) {
+            this.presentation.setFocusedNodeId(null);
+            return;
+        }
 
         const target = this.resolveFocus(event);
-        if (!target) return;
+        if (!target) {
+            this.presentation.setFocusedNodeId(null);
+            return;
+        }
+
+        this.presentation.setFocusedNodeId(target.nodeId);
 
         if (target.view === 'micro') {
             if (target.sessionId) {

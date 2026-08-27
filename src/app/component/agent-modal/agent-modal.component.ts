@@ -89,6 +89,23 @@ export class AgentModalComponent {
             this.gsap.fadeIn(overlay, {duration: 0.15});
             this.gsap.entrance([panel], {y: 16, duration: 0.3});
         });
+
+        effect(() => {
+            const focusedId = this.presentation.focusedNodeId();
+            const enabled = this.presentation.enabled();
+            const nodeList = this.nodes();
+
+            untracked(() => {
+                for (const node of nodeList) {
+                    const dataSignal = node.data;
+                    if (!dataSignal) continue;
+                    const data = dataSignal();
+                    const focused = enabled && focusedId === node.id;
+                    if (data.focused === focused) continue;
+                    dataSignal.set({...data, focused});
+                }
+            });
+        });
     }
 
     close(): void {

@@ -45,3 +45,10 @@ body, app-root {
 ::-webkit-scrollbar-thumb:hover{
     background-color: #909090;
 }
+
+.focused-node {
+    border-color: var(--color-accent) !important;
+    background-color: rgba(159, 226, 143, 0.22) !important;
+    box-shadow: 0 0 18px 3px rgba(159, 226, 143, 0.5), 0 0 4px 1px rgba(159, 226, 143, 0.85);
+    transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}

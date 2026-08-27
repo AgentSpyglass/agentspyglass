@@ -8,6 +8,7 @@ export type NodeData = {
     content?: string;
     inModal?: boolean;
     mcpSide?: 'left' | 'right';
+    focused?: boolean;
 }
 
 export const USER_AGENT: Agent = {

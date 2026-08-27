@@ -1,7 +1,10 @@
 <section
+		#content
 		class="z-10 min-w-80 max-w-96 border-accent border {{ isSubagent()? 'bg-secondary/20' : 'bg-accent/20' }} p-4 py-4 rounded-lg flex flex-col gap-4"
+		style="transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease"
 		[class.border-secondary]="isSubagent()"
-		[class.cursor-pointer]="isSubagent()">
+		[class.cursor-pointer]="isSubagent()"
+		[class.focused-node]="focused()">
 	@if (agent(); as a) {
 		<div class="font-black inline-flex items-center justify-between h-full gap-2">
 			<section class="font-black inline-flex items-center h-full gap-2">

@@ -7,6 +7,7 @@ import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {CompactNumberPipe} from "../../../pipe/compact-number.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
 import {AgentModalService} from "../../../service/agent-modal.service";
+import {PresentationService} from "../../../service/presentation.service";
 import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {ArrowExpandDiagonal01Icon, Coins01Icon, CpuIcon} from "@hugeicons/core-free-icons";
 import {DefaultImageDirective} from "../../../directive/default-image.directive";
@@ -29,6 +30,7 @@ import {DefaultImageDirective} from "../../../directive/default-image.directive"
 export class AgentNode extends CustomNodeComponent<NodeData> {
     private entityStore = inject(EntityStoreService);
     private modal = inject(AgentModalService);
+    private presentation = inject(PresentationService);
 
     readonly sessions = computed<Agent[]>(() => {
         const data = this.data();
@@ -46,6 +48,7 @@ export class AgentNode extends CustomNodeComponent<NodeData> {
     isSubagent = computed(() => this.agent()?.role === 'subagent');
     isUser = computed(() => this.agent()?.sessionId === USER_AGENT.sessionId);
     inModal = computed(() => this.data()?.inModal === true);
+    focused = computed(() => this.presentation.enabled() && this.data()?.focused === true);
 
     readonly totalCost = computed(() => this.sessions().reduce((sum, s) => sum + (s.cost ?? 0), 0));
     readonly totalTokens = computed(() => this.sessions().reduce((sum, s) => sum + (s.tokens ?? 0), 0));

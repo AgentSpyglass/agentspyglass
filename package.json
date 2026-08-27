@@ -10,7 +10,7 @@
   },
   "private": true,
   "dependencies": {
-    "@agentspyglass/core": "file:../agentspyglass-core",
+    "@agentspyglass/core": "github:AgentSpyglass/agentspyglass-core",
     "@angular/common": "^20.1.4",
     "@angular/compiler": "^20.1.4",
     "@angular/core": "^20.1.4",

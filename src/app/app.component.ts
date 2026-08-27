@@ -4,12 +4,17 @@ import {HugeiconsIconComponent} from "@hugeicons/angular";
 import {ArrowExpandIcon, SearchAddIcon, SearchMinusIcon, Telescope01Icon} from "@hugeicons/core-free-icons";
 import {FlowComponent} from "./component/flow.component";
 import {BrandService} from "./service/brand.service";
-import {Todo, Tool} from "@agentspyglass/core";
+import {Agent, Todo, Tool} from "@agentspyglass/core";
 import {SessionInfoComponent} from "./component/session-info/session-info.component";
 import {EntityStoreService} from "./service/entity-store.service";
+import {AgentModalService} from "./service/agent-modal.service";
 import {AgentModalComponent} from "./component/agent-modal/agent-modal.component";
+import {PresentationService} from "./service/presentation.service";
+import {PresentationControlsComponent} from "./component/presentation-controls/presentation-controls.component";
+import {PresentationEvent} from "./model/definitions";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {StatusData} from "./model/definitions";
+import {AgentEvent, ToolEvent} from "@agentspyglass/core";
 import {DefaultImageDirective} from "./directive/default-image.directive";
 
 @Component({
@@ -19,6 +24,7 @@ import {DefaultImageDirective} from "./directive/default-image.directive";
         FlowComponent,
         SessionInfoComponent,
         AgentModalComponent,
+        PresentationControlsComponent,
         DefaultImageDirective
     ],
     templateUrl: "./app.component.html",
@@ -26,9 +32,12 @@ import {DefaultImageDirective} from "./directive/default-image.directive";
 })
 export class AppComponent implements AfterViewInit {
     @ViewChild(FlowComponent) flow!: FlowComponent;
+    @ViewChild(AgentModalComponent) modal!: AgentModalComponent;
     bridge = inject(BridgeService);
     brand = inject(BrandService);
     entityStore = inject(EntityStoreService);
+    agentModal = inject(AgentModalService);
+    presentation = inject(PresentationService);
     private destroyRef = inject(DestroyRef);
 
     todoList = signal<Todo[]>([]);
@@ -86,6 +95,14 @@ export class AppComponent implements AfterViewInit {
             };
             this.entityStore.upsertAgent(agent);
             this.flow.addAgent(agent);
+
+            const nodeId = this.entityStore.resolveGroupKey(agentEvent.sessionId) ?? agentEvent.sessionId;
+            this.presentation.push({
+                type: 'agent',
+                nodeId,
+                timestamp: Date.now(),
+                data: agentEvent,
+            });
         });
 
         this.bridge.toolEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(toolEvent => {
@@ -118,6 +135,13 @@ export class AppComponent implements AfterViewInit {
 
             this.entityStore.upsertMcp(mcp);
             this.flow.addMcp(toolEvent.sessionId, mcp);
+
+            this.presentation.push({
+                type: 'tool',
+                nodeId: name,
+                timestamp: Date.now(),
+                data: toolEvent,
+            });
         });
 
         this.bridge.statusEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(statusEvent => {
@@ -133,6 +157,60 @@ export class AppComponent implements AfterViewInit {
         this.bridge.todoEvent.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(todoEvent => {
             this.todoList.set(todoEvent.todos);
         });
+
+        this.presentation.setFocusCallback(event => this.focusOnEvent(event));
+    }
+
+    private focusOnEvent(event: PresentationEvent | null): void {
+        if (!event) {
+            this.presentation.setFocusedNodeId(null);
+            return;
+        }
+
+        const target = this.resolveFocus(event);
+        if (!target) {
+            this.presentation.setFocusedNodeId(null);
+            return;
+        }
+
+        this.presentation.setFocusedNodeId(target.nodeId);
+
+        if (target.view === 'micro') {
+            if (target.sessionId) {
+                this.agentModal.open(target.sessionId);
+            }
+            this.modal?.focusNode(target.nodeId);
+        } else {
+            this.agentModal.close();
+            this.flow.focusNode(target.nodeId);
+        }
+    }
+
+    private resolveFocus(event: PresentationEvent): { nodeId: string; sessionId?: string; view: 'macro' | 'micro' } | null {
+        if (!event.nodeId) return null;
+
+        if (event.type === 'agent') {
+            const agentEvent = event.data as AgentEvent;
+            const isSubagent = agentEvent?.role === 'subagent';
+            return {
+                nodeId: isSubagent ? agentEvent.sessionId : event.nodeId,
+                sessionId: agentEvent.sessionId,
+                view: isSubagent ? 'micro' : 'macro'
+            };
+        }
+
+        if (event.type === 'tool') {
+            const toolEvent = event.data as ToolEvent;
+            const agent = this.entityStore.getAgent(toolEvent.sessionId);
+
+            return {
+                nodeId: event.nodeId,
+                sessionId: toolEvent.sessionId,
+                view: agent?.role === 'subagent'? 'micro' : 'macro'
+            };
+        }
+
+        return null;
     }
 
     ngAfterViewInit() {
@@ -141,6 +219,76 @@ export class AppComponent implements AfterViewInit {
             this.atMaxZoom.set(zoom >= 1.5);
             this.atMinZoom.set(zoom <= 0.1);
         }, {injector: this.injector});
+
+
+        const agent = {
+            role: 'primary',
+            name: 'agentEvent.name',
+            sessionId: 'agentEvent.sessionId',
+            model: 'agentEvent.model',
+            brand: this.brand.resolveBrand(
+                'agentEvent.model',
+                'agentEvent.provider'
+            ),
+            title: 'agentEvent.title',
+            cost: 5,
+            tokens: 5,
+            targetSessionId: 'agentEvent.targetSessionId',
+        } as Agent;
+        this.entityStore.upsertAgent(agent);
+        this.flow.addAgent(agent);
+
+        const nodeId = this.entityStore.resolveGroupKey('agentEvent.sessionId') ?? 'agentEvent.sessionId';
+        this.presentation.push({
+            type: 'agent',
+            nodeId,
+            timestamp: Date.now(),
+            data: {
+                role: 'primary',
+                name: 'agentEvent.name',
+                sessionId: 'agentEvent.sessionId',
+                model: 'agentEvent.model',
+                provider: 'agentEvent.model',
+                title: 'agentEvent.title',
+                cost: 5,
+                tokens: 0,
+                targetSessionId: 'agentEvent.targetSessionId',
+            } as AgentEvent,
+        });
+        const agent2 = {
+            role: 'subagent',
+            name: 'agentEvent.name2',
+            sessionId: 'agentEvent.sessionId2',
+            model: 'agentEvent.model',
+            brand: this.brand.resolveBrand(
+                'agentEvent.model',
+                'agentEvent.provider'
+            ),
+            title: 'agentEvent.title',
+            cost: 5,
+            tokens: 5,
+            targetSessionId: 'agentEvent.sessionId',
+        } as Agent;
+        this.entityStore.upsertAgent(agent2);
+        this.flow.addAgent(agent2);
+
+        const nodeId2 = this.entityStore.resolveGroupKey('agentEvent.sessionId2') ?? 'agentEvent.sessionId2';
+        this.presentation.push({
+            type: 'agent',
+            nodeId: nodeId2,
+            timestamp: Date.now(),
+            data: {
+                role: 'subagent',
+                name: 'agentEvent.name',
+                sessionId: 'agentEvent.sessionId2',
+                model: 'agentEvent.model',
+                provider: 'agentEvent.model',
+                title: 'agentEvent.title',
+                cost: 5,
+                tokens: 0,
+                targetSessionId: 'agentEvent.sessionId',
+            } as AgentEvent,
+        });
     }
 
     fitView(): void {
@@ -154,9 +302,4 @@ export class AppComponent implements AfterViewInit {
     zoomOut(): void {
         this.flow.zoomOut();
     }
-
-    protected readonly Telescope01Icon = Telescope01Icon;
-    protected readonly SearchAddIcon = SearchAddIcon;
-    protected readonly SearchMinusIcon = SearchMinusIcon;
-    protected readonly ArrowExpandIcon = ArrowExpandIcon;
 }

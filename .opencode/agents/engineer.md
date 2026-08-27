@@ -1,7 +1,7 @@
 ---
 description: Writes Tauri/Rust backend and Angular frontend code — commands, IPC handlers, window management, ui, components, style.
 mode: subagent
-model: opencode-go/mimo-v2.5
+model: opencode-go/kimi-k2.7-code
 permission:
   edit: allow
   bash: allow
@@ -94,7 +94,7 @@ Responsible for:
 * `src/app/service/bridge.service.ts` — Tauri IPC bridge
 * `src/app/service/brand.service.ts` — logo/provider resolution
 * `src/app/component/flow.component.ts` — ngx-vflow graph
-* `src/app/component/node/agent/agent.node.ts` — agent node
+* `src/app/component/node/agent/subagent.node.ts` — agent node
 * `src/app/component/node/mcp/mcp.node.ts` — MCP node
 * `src/app/component/node/message/message.node.ts` — message node
 * `src/app/component/node/info/info.node.ts` — info node

@@ -11,7 +11,7 @@ export class BridgeService {
     statusEvent = new Subject<StatusEvent>();
     todoEvent = new Subject<TodoEvent>();
 
-    connect(url = "ws://127.0.0.1:51763") {
+    connect(url = `ws://${location.hostname}:51763`) {
         if (this.socket) return
         this.socket = new WebSocket(url)
         this.socket.onmessage = (msg) => {

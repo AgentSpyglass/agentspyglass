@@ -1,10 +1,12 @@
-import {ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
+import {ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
 import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {resolveNodeComponent} from "./node/node-types";
 import {EntityStoreService} from "../service/entity-store.service";
+import {PresentationService} from "../service/presentation.service";
 import {layoutMacroGraph, MacroLayoutOptions, MacroNodeKind} from "../layout/graph-layout";
+import gsap from "gsap";
 
 type Point = { x: number; y: number };
 
@@ -34,8 +36,8 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 	    <vflow
                 #vflow
                 view="auto"
-			    [nodes]="nodes()"
-                [edges]="edges()"
+			    [nodes]="visibleNodes()"
+                [edges]="visibleEdges()"
 			    [minZoom]="0.1"
 			    [maxZoom]="1.5"
 			    [snapGrid]="[25, 25]"
@@ -43,14 +45,20 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 			    [background]="{ type: 'dots', gap: 25, color: 'rgba(100,100,50,0.3)', backgroundColor: '#040504' }"
 	    />
     `,
+    styles: [`:host { display: block; width: 100%; height: 100%; }`],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FlowComponent {
     vflow = viewChild.required(VflowComponent);
+    private vflowEl = viewChild.required('vflow', {read: ElementRef<HTMLElement>});
     nodes: WritableSignal<ComponentNode[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
+    readonly visibleNodes = computed(() => this.filterNodes(this.nodes()));
+    readonly visibleEdges = computed(() => this.filterEdges(this.edges()));
+
     private entityStore = inject(EntityStoreService);
+    private presentation = inject(PresentationService);
 
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
 
@@ -58,8 +66,8 @@ export class FlowComponent {
 
     constructor() {
         effect(() => {
-            const nodes = this.nodes();
-            const edges = this.edges();
+            const nodes = this.visibleNodes();
+            const edges = this.visibleEdges();
             if (nodes.length === 0) return;
 
             const kinds = new Map<string, MacroNodeKind>();
@@ -81,6 +89,23 @@ export class FlowComponent {
                 }
             });
         });
+
+        effect(() => {
+            const focusedId = this.presentation.focusedNodeId();
+            const enabled = this.presentation.enabled();
+            const nodeList = this.nodes();
+
+            untracked(() => {
+                for (const node of nodeList) {
+                    const dataSignal = node.data;
+                    if (!dataSignal) continue;
+                    const data = dataSignal();
+                    const focused = enabled && focusedId === node.id;
+                    if (data.focused === focused) continue;
+                    dataSignal.set({...data, focused});
+                }
+            });
+        });
     }
 
     fitView(): void {
@@ -95,8 +120,37 @@ export class FlowComponent {
         this.vflow().zoomTo(Math.max(this.vflow().viewport().zoom / 1.2, 0.1));
     }
 
-    viewport() {
-        return this.vflow().viewport();
+    /** Center the viewport on the node with the given id (smooth). */
+    focusNode(nodeId: string): void {
+        const vflow = this.vflow();
+        const node = vflow.getNode(nodeId);
+        if (!node) return;
+        const point = node.point();
+        const rect = this.vflowEl().nativeElement.getBoundingClientRect();
+        const width = rect.width || 800;
+        const height = rect.height || 600;
+        const nodeWidth = (node as { width?: WritableSignal<number> }).width?.() ?? 100;
+        const nodeHeight = (node as { height?: WritableSignal<number> }).height?.() ?? 100;
+        const targetZoom = 0.8;
+        const target = {
+            x: width / 2 - (point.x + nodeWidth / 2) * targetZoom,
+            y: height / 2 - (point.y + nodeHeight / 2) * targetZoom,
+        };
+        this.animateViewport(target.x, target.y, targetZoom);
+    }
+
+    /** Smoothly animate the viewport to a target (x, y) and zoom. */
+    private animateViewport(targetX: number, targetY: number, targetZoom: number): void {
+        const vp = this.vflow().viewport();
+        const proxy = {x: vp.x, y: vp.y, zoom: vp.zoom};
+        gsap.to(proxy, {
+            x: targetX,
+            y: targetY,
+            zoom: targetZoom,
+            duration: 0.3,
+            ease: 'power2.out',
+            onUpdate: () => this.vflow().viewportTo({x: proxy.x, y: proxy.y, zoom: proxy.zoom}),
+        });
     }
 
     public addAgent(agent: Agent) {
@@ -207,5 +261,17 @@ export class FlowComponent {
                 targetHandle
             }]);
         }
+    }
+
+    private filterNodes(nodes: ComponentNode[]): ComponentNode[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return nodes;
+        return nodes.filter(n => visible.has(n.id));
+    }
+
+    private filterEdges(edges: Edge[]): Edge[] {
+        const visible = this.presentation.visibleNodeIds();
+        if (!visible) return edges;
+        return edges.filter(e => visible.has(e.source) && visible.has(e.target));
     }
 }

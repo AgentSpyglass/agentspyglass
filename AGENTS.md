@@ -218,7 +218,7 @@ src/app/app.component.ts
 src/app/service/bridge.service.ts
 src/app/service/brand.service.ts
 src/app/component/flow.component.ts
-src/app/component/node/agent/agent.node.ts
+src/app/component/node/agent/subagent.node.ts
 src/app/component/node/mcp/mcp.node.ts
 src/app/component/node/message/message.node.ts
 src/app/component/node/info/info.node.ts

@@ -1,4 +1,5 @@
 import {computed, Injectable, OnDestroy, signal, WritableSignal} from "@angular/core";
+import {AgentEvent} from "@agentspyglass/core";
 import {PresentationEvent} from "../model/definitions";
 
 @Injectable({providedIn: 'root'})
@@ -25,8 +26,15 @@ export class PresentationService implements OnDestroy {
         const ids = new Set<string>();
         if (i < 0) return ids;
         for (let k = 0; k <= i; k++) {
-            const id = list[k]?.nodeId;
-            if (id) ids.add(id);
+            const event = list[k];
+            if (!event) continue;
+            if (event.nodeId) ids.add(event.nodeId);
+            if (event.type === 'agent') {
+                const agentEvent = event.data as AgentEvent;
+                if (agentEvent.role === 'subagent' && agentEvent.sessionId) {
+                    ids.add(agentEvent.sessionId);
+                }
+            }
         }
         return ids;
     });

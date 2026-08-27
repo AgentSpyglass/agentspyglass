@@ -96,9 +96,7 @@ export class AppComponent implements AfterViewInit {
             this.entityStore.upsertAgent(agent);
             this.flow.addAgent(agent);
 
-            const nodeId = agentEvent.targetSessionId
-                ? agentEvent.sessionId
-                : (this.entityStore.resolveGroupKey(agentEvent.sessionId) ?? agentEvent.sessionId);
+            const nodeId = this.entityStore.resolveGroupKey(agentEvent.sessionId) ?? agentEvent.sessionId;
             this.presentation.push({
                 type: 'agent',
                 nodeId,
@@ -185,10 +183,11 @@ export class AppComponent implements AfterViewInit {
 
         if (event.type === 'agent') {
             const agentEvent = event.data as AgentEvent;
+            const isSubagent = agentEvent?.role === 'subagent';
             return {
-                nodeId: event.nodeId,
+                nodeId: isSubagent ? agentEvent.sessionId : event.nodeId,
                 sessionId: agentEvent.sessionId,
-                view: agentEvent?.role === 'subagent'? 'micro' : 'macro'
+                view: isSubagent ? 'micro' : 'macro'
             };
         }
 

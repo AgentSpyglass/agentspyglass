@@ -49,6 +49,7 @@ const MACRO_LAYOUT: MacroLayoutOptions = {
 })
 export class FlowComponent {
     vflow = viewChild.required(VflowComponent);
+    private vflowEl = viewChild.required('vflow', {read: ElementRef<HTMLElement>});
     nodes: WritableSignal<ComponentNode[]> = signal([]);
     edges: WritableSignal<Edge[]> = signal([]);
 
@@ -57,7 +58,6 @@ export class FlowComponent {
 
     private entityStore = inject(EntityStoreService);
     private presentation = inject(PresentationService);
-    private hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
     private readonly deferredEdges = new Map<string, DeferredEdge[]>();
 
@@ -104,30 +104,34 @@ export class FlowComponent {
 
     /** Center the viewport on the node with the given id (smooth). */
     focusNode(nodeId: string): void {
-        const node = this.vflow().getNode(nodeId);
+        const vflow = this.vflow();
+        const node = vflow.getNode(nodeId);
         if (!node) return;
         const point = node.point();
-        const zoom = this.vflow().viewport().zoom;
-        const rect = this.hostEl.nativeElement.getBoundingClientRect();
+        const rect = this.vflowEl().nativeElement.getBoundingClientRect();
         const width = rect.width || 800;
         const height = rect.height || 600;
+        const nodeWidth = (node as { width?: WritableSignal<number> }).width?.() ?? 100;
+        const nodeHeight = (node as { height?: WritableSignal<number> }).height?.() ?? 100;
+        const targetZoom = 0.8;
         const target = {
-            x: width / 2 - point.x * zoom,
-            y: height / 2 - point.y * zoom,
+            x: width / 2 - (point.x + nodeWidth / 2) * targetZoom,
+            y: height / 2 - (point.y + nodeHeight / 2) * targetZoom,
         };
-        this.animateViewport(target.x, target.y);
+        this.animateViewport(target.x, target.y, targetZoom);
     }
 
-    /** Smoothly pan the viewport to a target (x, y) keeping zoom constant. */
-    private animateViewport(targetX: number, targetY: number): void {
+    /** Smoothly animate the viewport to a target (x, y) and zoom. */
+    private animateViewport(targetX: number, targetY: number, targetZoom: number): void {
         const vp = this.vflow().viewport();
-        const proxy = {x: vp.x, y: vp.y};
+        const proxy = {x: vp.x, y: vp.y, zoom: vp.zoom};
         gsap.to(proxy, {
             x: targetX,
             y: targetY,
+            zoom: targetZoom,
             duration: 0.3,
             ease: 'power2.out',
-            onUpdate: () => this.vflow().panTo({x: proxy.x, y: proxy.y}),
+            onUpdate: () => this.vflow().viewportTo({x: proxy.x, y: proxy.y, zoom: proxy.zoom}),
         });
     }
 

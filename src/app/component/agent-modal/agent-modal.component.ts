@@ -50,6 +50,9 @@ export class AgentModalComponent {
     private overlayEl = viewChild<ElementRef<HTMLElement>>('overlay');
     private panelEl = viewChild<ElementRef<HTMLElement>>('panel');
     private vflow = viewChild(VflowComponent);
+    private vflowEl = viewChild('vflow', {read: ElementRef<HTMLElement>});
+
+    private skipNextFitView = false;
 
     readonly nodes: WritableSignal<ComponentNode[]> = signal([]);
     readonly edges: WritableSignal<Edge[]> = signal([]);
@@ -96,6 +99,7 @@ export class AgentModalComponent {
     focusNode(nodeId: string): void {
         if (!this.open()) return;
 
+        this.skipNextFitView = true;
         let attempts = 0;
         const step = () => {
             const vflow = this.vflow();
@@ -112,22 +116,26 @@ export class AgentModalComponent {
         const node = vflow.getNode(nodeId);
         if (!node) return;
         const point = node.point();
-        const zoom = vflow.viewport().zoom;
-        const rect = this.hostEl.nativeElement.getBoundingClientRect();
+        const rect = this.vflowEl()?.nativeElement.getBoundingClientRect()
+            ?? this.hostEl.nativeElement.getBoundingClientRect();
         const width = rect.width || 800;
         const height = rect.height || 600;
+        const nodeWidth = (node as { width?: WritableSignal<number> }).width?.() ?? 100;
+        const nodeHeight = (node as { height?: WritableSignal<number> }).height?.() ?? 100;
+        const targetZoom = 0.8;
         const target = {
-            x: width / 2 - point.x * zoom,
-            y: height / 2 - point.y * zoom,
+            x: width / 2 - (point.x + nodeWidth / 2) * targetZoom,
+            y: height / 2 - (point.y + nodeHeight / 2) * targetZoom,
         };
         const vp = vflow.viewport();
-        const proxy = {x: vp.x, y: vp.y};
+        const proxy = {x: vp.x, y: vp.y, zoom: vp.zoom};
         gsap.to(proxy, {
             x: target.x,
             y: target.y,
+            zoom: targetZoom,
             duration: 0.3,
             ease: 'power2.out',
-            onUpdate: () => vflow.panTo({x: proxy.x, y: proxy.y}),
+            onUpdate: () => vflow.viewportTo({x: proxy.x, y: proxy.y, zoom: proxy.zoom}),
         });
     }
 
@@ -201,6 +209,10 @@ export class AgentModalComponent {
 
     private scheduleFitView(openedFor: string | null): void {
         requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (this.skipNextFitView) {
+                this.skipNextFitView = false;
+                return;
+            }
             if (this.modal.activeAgentId() === null) return;
             if (openedFor !== null && openedFor !== this.modal.activeAgentId()) return;
             this.vflow()?.fitView({padding: 0.2, duration: 200});

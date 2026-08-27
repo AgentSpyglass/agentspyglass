@@ -102,10 +102,6 @@ export class FlowComponent {
         this.vflow().zoomTo(Math.max(this.vflow().viewport().zoom / 1.2, 0.1));
     }
 
-    viewport() {
-        return this.vflow().viewport();
-    }
-
     /** Center the viewport on the node with the given id (smooth). */
     focusNode(nodeId: string): void {
         const node = this.vflow().getNode(nodeId);

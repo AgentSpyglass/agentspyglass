@@ -170,8 +170,8 @@ export class AppComponent implements AfterViewInit {
         if (!target) return;
 
         if (target.view === 'micro') {
-            if (target.parentSessionId) {
-                this.agentModal.open(target.parentSessionId);
+            if (target.sessionId) {
+                this.agentModal.open(target.sessionId);
             }
             this.modal?.focusNode(target.nodeId);
         } else {
@@ -180,33 +180,27 @@ export class AppComponent implements AfterViewInit {
         }
     }
 
-    private resolveFocus(event: PresentationEvent): { nodeId: string; view: 'macro' | 'micro'; parentSessionId?: string } | null {
+    private resolveFocus(event: PresentationEvent): { nodeId: string; sessionId?: string; view: 'macro' | 'micro' } | null {
         if (!event.nodeId) return null;
 
         if (event.type === 'agent') {
             const agentEvent = event.data as AgentEvent;
-            const agent = this.entityStore.getAgent(agentEvent.sessionId);
-            if (agent?.role === 'subagent') {
-                return {
-                    nodeId: event.nodeId,
-                    view: 'micro',
-                    parentSessionId: agent.targetSessionId
-                };
-            }
-            return {nodeId: event.nodeId, view: 'macro'};
+            return {
+                nodeId: event.nodeId,
+                sessionId: agentEvent.sessionId,
+                view: agentEvent?.role === 'subagent'? 'micro' : 'macro'
+            };
         }
 
         if (event.type === 'tool') {
             const toolEvent = event.data as ToolEvent;
             const agent = this.entityStore.getAgent(toolEvent.sessionId);
-            if (agent?.role === 'subagent') {
-                return {
-                    nodeId: event.nodeId,
-                    view: 'micro',
-                    parentSessionId: agent.targetSessionId
-                };
-            }
-            return {nodeId: event.nodeId, view: 'macro'};
+
+            return {
+                nodeId: event.nodeId,
+                sessionId: toolEvent.sessionId,
+                view: agent?.role === 'subagent'? 'micro' : 'macro'
+            };
         }
 
         return null;
@@ -231,9 +225,4 @@ export class AppComponent implements AfterViewInit {
     zoomOut(): void {
         this.flow.zoomOut();
     }
-
-    protected readonly Telescope01Icon = Telescope01Icon;
-    protected readonly SearchAddIcon = SearchAddIcon;
-    protected readonly SearchMinusIcon = SearchMinusIcon;
-    protected readonly ArrowExpandIcon = ArrowExpandIcon;
 }

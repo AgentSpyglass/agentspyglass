@@ -184,12 +184,13 @@ export class AppComponent implements AfterViewInit {
         if (event.type === 'agent') {
             const agentEvent = event.data as AgentEvent;
             const agent = this.entityStore.getAgent(agentEvent.sessionId);
-            if (agent?.role === 'subagent') {
+            const parentSessionId = agent?.targetSessionId ?? agentEvent.targetSessionId;
+            if (parentSessionId) {
                 if (!event.nodeId) return null;
                 return {
                     nodeId: event.nodeId,
                     view: 'micro',
-                    parentSessionId: agent.targetSessionId ?? agentEvent.sessionId
+                    parentSessionId
                 };
             }
             return event.nodeId ? {nodeId: event.nodeId, view: 'macro'} : null;
@@ -198,9 +199,9 @@ export class AppComponent implements AfterViewInit {
         if (event.type === 'tool') {
             const toolEvent = event.data as ToolEvent;
             const agent = this.entityStore.getAgent(toolEvent.sessionId);
-            if (agent?.role === 'subagent') {
+            if (agent?.targetSessionId) {
                 if (!event.nodeId) return null;
-                return {nodeId: event.nodeId, view: 'micro', parentSessionId: agent.targetSessionId ?? toolEvent.sessionId};
+                return {nodeId: event.nodeId, view: 'micro', parentSessionId: agent.targetSessionId};
             }
             return event.nodeId ? {nodeId: event.nodeId, view: 'macro'} : null;
         }

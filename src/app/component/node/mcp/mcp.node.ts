@@ -48,14 +48,13 @@ export class McpNode extends CustomNodeComponent<NodeData> {
 
             if (this.focused()) {
                 this.pulse?.kill();
-                gsap.set(el, {transformOrigin: 'center center'});
                 this.pulse = gsap.timeline({repeat: -1, yoyo: true})
-                    .to(el, {scale: 1.05, duration: 0.6, ease: 'power1.inOut'})
-                    .to(el, {scale: 1, duration: 0.6, ease: 'power1.inOut'});
+                    .to(el, {opacity: 0.75, duration: 0.6, ease: 'power1.inOut'})
+                    .to(el, {opacity: 1, duration: 0.6, ease: 'power1.inOut'});
             } else {
                 this.pulse?.kill();
                 this.pulse = undefined;
-                gsap.to(el, {scale: 1, duration: 0.2, ease: 'power2.out'});
+                gsap.to(el, {opacity: 1, duration: 0.2, ease: 'power2.out'});
             }
         });
 

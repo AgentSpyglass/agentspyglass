@@ -92,7 +92,6 @@ export class AgentModalComponent {
 
         effect(() => {
             const focusedId = this.presentation.focusedNodeId();
-            const enabled = this.presentation.enabled();
             const nodeList = this.nodes();
 
             untracked(() => {
@@ -100,7 +99,7 @@ export class AgentModalComponent {
                     const dataSignal = node.data;
                     if (!dataSignal) continue;
                     const data = dataSignal();
-                    const focused = enabled && focusedId === node.id;
+                    const focused = focusedId === node.id;
                     if (data.focused === focused) continue;
                     dataSignal.set({...data, focused});
                 }

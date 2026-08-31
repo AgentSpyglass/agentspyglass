@@ -1,7 +1,7 @@
 ---
 description: Reviews Angular and Rust code for quality, type safety, and architecture adherence.
 mode: subagent
-model: opencode-go/mimo-v2.5
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow

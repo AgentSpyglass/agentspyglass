@@ -1,7 +1,7 @@
 ---
 description: Primary orchestrator for the UI squad. Coordinates Angular component work, Tauri backend, and reviews. Delegates all implementation.
 mode: primary
-model: opencode-go/qwen3.7-plus
+model: opencode/muse-spark-1.2-contributor-free
 permission:
    edit: deny
    bash: deny

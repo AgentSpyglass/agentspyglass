@@ -10,13 +10,12 @@ import {
     SquareIcon,
     Coins01Icon,
     CpuIcon, Books02Icon, Menu01Icon, Settings01Icon, ArrowRight01Icon, DollarCircleIcon,
-    AiContentGenerator02Icon, ArrowDown01Icon, ArrowUp01Icon, RemoveSquareIcon, Loading03Icon, Presentation01Icon
+    AiContentGenerator02Icon, ArrowDown01Icon, ArrowUp01Icon, RemoveSquareIcon, Loading03Icon
 } from "@hugeicons/core-free-icons";
 import {StatusData} from "../../model/definitions";
 import {SettingsComponent} from "../settings/settings.component";
 import {CurrencyPipe} from "@angular/common";
 import {CompactNumberPipe} from "../../pipe/compact-number.pipe";
-import {PresentationService} from "../../service/presentation.service";
 
 @Component({
     selector: 'session-info',
@@ -36,7 +35,6 @@ export class SessionInfoComponent {
     usage = input.required<StatusData>();
 
     settingsOpen = signal(false);
-    presentation = inject(PresentationService);
 
     tokenBreakdown = computed(() => this.usage().tokenBreakdown);
 
@@ -46,12 +44,6 @@ export class SessionInfoComponent {
         action: () => void;
         disabled: () => boolean;
     }[] = [
-        {
-            icon: Presentation01Icon,
-            label: 'Presentation',
-            action: () => this.togglePresentation(),
-            disabled: () => false,
-        },
         {
             icon: Settings01Icon,
             label: 'Settings',
@@ -66,10 +58,6 @@ export class SessionInfoComponent {
 
     toggleTokens() {
         this.showTokens.update((v) => !v);
-    }
-
-    togglePresentation(): void {
-        this.presentation.toggle();
     }
 
     toggleSettings(): void {

@@ -82,11 +82,11 @@ jobs:
 
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             cp \
-              "src-tauri/target/${{ matrix.target }}/release/agent-spyglass.exe" \
+              "src-tauri/target/${{ matrix.target }}/release/agentspyglass-window.exe" \
               "artifacts/agent-spyglass-${{ matrix.artifact }}.exe"
           else
             cp \
-              "src-tauri/target/${{ matrix.target }}/release/agent-spyglass" \
+              "src-tauri/target/${{ matrix.target }}/release/agentspyglass-window" \
               "artifacts/agent-spyglass-${{ matrix.artifact }}"
 
             chmod +x "artifacts/agent-spyglass-${{ matrix.artifact }}"

@@ -1,7 +1,7 @@
 ---
 description: Writes Tauri/Rust backend and Angular frontend code — commands, IPC handlers, window management, ui, components, style.
 mode: subagent
-model: opencode-go/kimi-k2.7-code
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   edit: allow
   bash: allow

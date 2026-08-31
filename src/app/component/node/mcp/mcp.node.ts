@@ -5,7 +5,6 @@ import {NodeData} from "../../../model/definitions";
 import {TextContainerComponent} from "../../text-container.component";
 import {NameCasePipe} from "../../../pipe/namecase.pipe";
 import {EntityStoreService} from "../../../service/entity-store.service";
-import {PresentationService} from "../../../service/presentation.service";
 import {DefaultImageDirective} from "../../../directive/default-image.directive";
 
 @Component({
@@ -22,7 +21,6 @@ import {DefaultImageDirective} from "../../../directive/default-image.directive"
 })
 export class McpNode extends CustomNodeComponent<NodeData> {
     private entityStore = inject(EntityStoreService);
-    private presentation = inject(PresentationService);
 
     mcp = computed(() => {
         const data = this.data();
@@ -32,7 +30,7 @@ export class McpNode extends CustomNodeComponent<NodeData> {
 
     mcpSide = computed(() => this.data()?.mcpSide);
     inModal = computed(() => this.data()?.inModal);
-    focused = computed(() => this.presentation.enabled() && this.data()?.focused === true);
+    focused = computed(() => this.data()?.focused === true);
 
     generateToolMessage(tool: Tool) {
         return `<span class="font-medium ${this.getColor(tool)}">${tool.name}</span> <span class="text-xs font-light ${this.getColor(tool)}">${JSON.stringify(tool.input)}</span>`

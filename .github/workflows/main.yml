@@ -1,4 +1,4 @@
-name: 'publish'
+name: Publish
 
 on:
   workflow_dispatch:
@@ -6,64 +6,127 @@ on:
     branches:
       - release
 
+permissions:
+  contents: write
+
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-22.04'
-            args: ''
-          - platform: 'ubuntu-22.04-arm' # Only available in public repos.
-            args: ''
-          - platform: 'windows-latest'
-            args: ''
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            artifact: macos-arm64
+
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            artifact: macos-x64
+
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact: linux-x64
+
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact: linux-arm64
+
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: windows-x64
 
     runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v7
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm' # This must match the platform value defined above.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
 
-      - name: setup node
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-          cache: 'npm' # Set this to npm, yarn or pnpm depending on what you use.
+          cache: npm
 
-      - name: install Rust stable
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          # This matches Tauri's default project layout. Change this if you have a different layout.
           workspaces: './src-tauri -> target'
 
-      - name: install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured in tauri.conf.json, you may want to build your frontend here too.
-        run: npm install # change this to npm, yarn or pnpm depending on which one you use.
+      - name: Install frontend dependencies
+        run: npm ci
 
-      - uses: tauri-apps/tauri-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build
+        run: npm run tauri build -- --target ${{ matrix.target }}
+
+      # Replace "agent-spyglass" with your actual Cargo binary name.
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p artifacts
+
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp \
+              "src-tauri/target/${{ matrix.target }}/release/agent-spyglass.exe" \
+              "artifacts/agent-spyglass-${{ matrix.artifact }}.exe"
+          else
+            cp \
+              "src-tauri/target/${{ matrix.target }}/release/agent-spyglass" \
+              "artifacts/agent-spyglass-${{ matrix.artifact }}"
+
+            chmod +x "artifacts/agent-spyglass-${{ matrix.artifact }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
-          releaseName: 'App v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
+          name: agent-spyglass-${{ matrix.artifact }}
+          path: artifacts/*
+          if-no-files-found: error
+
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Read version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: app-v${{ steps.version.outputs.version }}
+          name: App v${{ steps.version.outputs.version }}
+          files: release/*
+          draft: false
           prerelease: false
-          args: ${{ matrix.args }}
+          generate_release_notes: true

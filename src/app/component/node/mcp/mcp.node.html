@@ -21,10 +21,10 @@
 </section>
 
 <handle type="source" position="right" id="s-right" />
+<handle type="source" position="left" id="s-left" />
 @if (inModal()) {
 	<handle type="target" position="top" id="t-top" />
-} @else if (mcpSide() === 'left') {
-	<handle type="target" position="right" id="t-right" />
 } @else {
 	<handle type="target" position="left" id="t-left" />
+	<handle type="target" position="right" id="t-right" />
 }

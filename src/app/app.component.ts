@@ -117,6 +117,8 @@ export class AppComponent implements AfterViewInit {
                 };
             }
 
+            if (!mcp) return;
+
             const tool: Tool = {
                 callId: toolEvent.callId,
                 name: toolEvent.name,

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
-import {ComponentNode, Curve, Edge, VflowComponent} from "ngx-vflow";
+import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {resolveNodeComponent} from "./node/node-types";
@@ -19,7 +19,7 @@ const PROVISIONAL_POINT: Point = {x: 650, y: 150};
 const USER_NODE_PREFIX = "user-";
 
 const MACRO_LAYOUT: MacroLayoutOptions = {
-    origin: {x: 650, y: 150},
+    origin: {x: 650, y: 150, side: ''},
     anchorGap: 160,
     mcpGap: 400,
     mcpStackGap: 180,
@@ -84,8 +84,22 @@ export class FlowComponent {
                     const next = positions.get(node.id);
                     if (!next) continue;
                     const current = node.point();
-                    if (current.x === next.x && current.y === next.y) continue;
-                    node.point.set(next);
+                    const positionChanged = current.x !== next.x || current.y !== next.y;
+                    if (positionChanged) {
+                        node.point.set(next);
+                    }
+
+                    if (node.data?.()?.type !== 'mcp') continue;
+                    const mcp = this.entityStore.getMcp(node.id);
+                    if (!mcp) continue;
+
+                    const layoutSide = next.side as 'left' | 'right' | undefined;
+                    if (layoutSide && mcp.side !== layoutSide) {
+                        mcp.side = layoutSide;
+                        this.entityStore.upsertMcp(mcp);
+                    }
+                    // Ensure edge handles match the resolved side (created before layout)
+                    this.syncMcpEdgeHandles(node.id, mcp.side);
                 }
             });
         });
@@ -188,32 +202,51 @@ export class FlowComponent {
         }
     }
 
-    private connectMcp(ownerKey: string, mcpName: string): void {
+    private ensureMcpSide(ownerKey: string, mcpName: string): void {
+        const mcp = this.entityStore.getMcp(mcpName);
+        if (!mcp) return;
+        // Layout assigns side by parity: index 0 -> right, 1 -> left, etc.
+        // Replicate deterministically before edge creation so handles are correct immediately.
         if (this.edges().some(e => e.source === ownerKey && e.target === mcpName)) return;
-        const index = this.countMcpEdges(ownerKey);
-        const {sourceHandle, targetHandle} = this.mcpHandles(index);
-        this.setMcpSide(mcpName, index % 2 === 0 ? 'right' : 'left');
-        this.addEdge(ownerKey, mcpName, sourceHandle, targetHandle);
+        const existingMcpCount = this.edges().filter(e => e.source === ownerKey && this.isMcpNode(e.target)).length;
+        const expectedSide: 'left' | 'right' = existingMcpCount % 2 === 0 ? 'right' : 'left';
+        if (mcp.side !== expectedSide) {
+            mcp.side = expectedSide;
+            this.entityStore.upsertMcp(mcp);
+        }
     }
 
-    private setMcpSide(mcpName: string, mcpSide: 'left' | 'right'): void {
-        const node = this.nodes().find(n => n.id === mcpName);
-        if (!node || !node.data) return;
-        node.data.set({...node.data(), mcpSide});
+    private syncMcpEdgeHandles(mcpName: string, side: 'left' | 'right'): void {
+        const {sourceHandle, targetHandle} = this.mcpHandles(side);
+        let mutated = false;
+        const nextEdges = this.edges().map(e => {
+            if (e.target !== mcpName || !this.isMcpNode(e.target)) return e;
+            if (e.sourceHandle === sourceHandle && e.targetHandle === targetHandle) return e;
+            mutated = true;
+            return {...e, sourceHandle, targetHandle};
+        });
+        if (mutated) this.edges.set(nextEdges);
+    }
+
+    private connectMcp(ownerKey: string, mcpName: string): void {
+        if (this.edges().some(e => e.source === ownerKey && e.target === mcpName)) return;
+        // Ensure side is determined BEFORE edge creation (fixes stale default 'left')
+        this.ensureMcpSide(ownerKey, mcpName);
+        const mcp = this.entityStore.getMcp(mcpName);
+        if (!mcp) return;
+
+        const {sourceHandle, targetHandle} = this.mcpHandles(mcp.side);
+        this.addEdge(ownerKey, mcp.name, sourceHandle, targetHandle);
     }
 
     private isMcpNode(nodeId: string): boolean {
         return this.nodes().find(n => n.id === nodeId)?.data?.().type === 'mcp';
     }
 
-    private countMcpEdges(groupKey: string): number {
-        return this.edges().filter(e => e.source === groupKey && this.isMcpNode(e.target)).length;
-    }
-
-    private mcpHandles(index: number): {sourceHandle: string; targetHandle: string} {
-        return index % 2 === 0
-            ? {sourceHandle: 's-right', targetHandle: 't-left'}
-            : {sourceHandle: 's-left', targetHandle: 't-right'};
+    private mcpHandles(side: 'left' | 'right'): {sourceHandle: string; targetHandle: string} {
+        return side === 'left'
+            ? {sourceHandle: 's-left', targetHandle: 't-right'}
+            : {sourceHandle: 's-right', targetHandle: 't-left'};
     }
 
     private deferEdge(parentSessionId: string, edge: DeferredEdge): void {
@@ -257,8 +290,7 @@ export class FlowComponent {
                 source,
                 target,
                 sourceHandle,
-                targetHandle,
-                curve: signal<Curve>('smooth-step')
+                targetHandle
             }]);
         }
     }

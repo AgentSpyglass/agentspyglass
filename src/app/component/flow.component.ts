@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, signal, untracked, viewChild, WritableSignal} from "@angular/core";
-import {ComponentNode, Edge, VflowComponent} from "ngx-vflow";
+import {ComponentNode, Curve, Edge, VflowComponent} from "ngx-vflow";
 import {Agent, MCP} from "@agentspyglass/core";
 import {NodeData, NodeType} from "../model/definitions";
 import {resolveNodeComponent} from "./node/node-types";
@@ -257,7 +257,8 @@ export class FlowComponent {
                 source,
                 target,
                 sourceHandle,
-                targetHandle
+                targetHandle,
+                curve: signal<Curve>('smooth-step')
             }]);
         }
     }

@@ -1,6 +1,7 @@
 export interface Positioned {
     readonly x: number;
     readonly y: number;
+    readonly side?: string;
 }
 
 export interface LayoutNodeInput {
@@ -126,11 +127,12 @@ export function layoutMacroGraph(
         const right = mcps.filter((_, i) => i % 2 === 0);
         left.forEach((mcp, i) => {
             if (positions.has(mcp)) return;
-            positions.set(mcp, {x: x - options.mcpGap, y: y + (i - (left.length - 1) / 2) * options.mcpStackGap});
+            positions.set(mcp, {x: x - options.mcpGap, y: y + (i - (left.length - 1) / 2) * options.mcpStackGap, side: 'left'});
         });
         right.forEach((mcp, i) => {
             if (positions.has(mcp)) return;
-            positions.set(mcp, {x: x + options.mcpGap, y: y + (i - (right.length - 1) / 2) * options.mcpStackGap});
+
+            positions.set(mcp, {x: x + options.mcpGap, y: y + (i - (right.length - 1) / 2) * options.mcpStackGap, side: 'right'});
         });
 
         const kids = childrenOf.get(id) ?? [];

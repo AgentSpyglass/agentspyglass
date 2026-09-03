@@ -15,7 +15,7 @@ import {DefaultImageDirective} from "../../directive/default-image.directive";
 import gsap from 'gsap';
 
 const MICRO_LAYOUT: MicroLayoutOptions = {
-    origin: {x: 0, y: 0},
+    origin: {x: 0, y: 0, side: ''},
     layerGap: 220,
     rowGap: 220,
     colGap: 440,

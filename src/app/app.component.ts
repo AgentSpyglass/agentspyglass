@@ -112,7 +112,8 @@ export class AppComponent implements AfterViewInit {
                 mcp = {
                     name,
                     brand: this.brand.resolveMcpBrand(name),
-                    tools: []
+                    tools: [],
+                    side: 'left'
                 };
             }
 
